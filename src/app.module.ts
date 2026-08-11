@@ -22,7 +22,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     password: config.get<string>('database.password'),
     database: config.get<string>('database.name'),
     autoLoadEntities: true,
-    synchronize: false,
+    synchronize: true,
   }),
 }),
 
