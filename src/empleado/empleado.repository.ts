@@ -37,4 +37,31 @@ export class EmpleadoRepository {
     });
   }
 
+  async create(empleado: Partial<Empleado>): Promise<Empleado> {
+    const nuevoEmpleado = this.repository.create(empleado);
+
+  return this.repository.save(nuevoEmpleado);
+  }
+
+  async update(
+    id: number,
+    datos: Partial<Empleado>,
+  ): Promise<Empleado | null> {
+    const empleado = await this.repository.preload({
+      id,
+      ...datos,
+    });
+
+    if (!empleado) {
+      return null;
+    }
+
+    return this.repository.save(empleado);
+  }
+
+  async delete(id: number): Promise<boolean> {
+    const resultado = await this.repository.delete(id);
+
+    return (resultado.affected ?? 0) > 0;
+  }
 }
