@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import  { CrearempleadoDto } from './dto/crear-empleado.dto';
+import  { CrearEmpleadoDto } from './dto/crear-empleado.dto';
 import  { Empleado } from './entities/empleado.entity';
 import { Repository } from 'typeorm';
 
@@ -11,14 +11,14 @@ export class EmpleadoRepository {
     private readonly repository: Repository<Empleado>,
   ) {}
 
-  async findAll(): Promise<Empleado[]> {
+   async findAll(): Promise<Empleado[]> {
     return this.repository.find({
       relations: {
         tipoRol: true,
       },
     });
   }
-  
+
   async findById(id: number): Promise<Empleado | null> {
     return this.repository.findOne({
       where: { id },
@@ -37,10 +37,13 @@ export class EmpleadoRepository {
     });
   }
 
-  async create(empleado: Partial<Empleado>): Promise<Empleado> {
-    const nuevoEmpleado = this.repository.create(empleado);
+  async create(
+    empleado: Partial<Empleado>,
+  ): Promise<Empleado> {
+    const nuevoEmpleado =
+      this.repository.create(empleado);
 
-  return this.repository.save(nuevoEmpleado);
+    return this.repository.save(nuevoEmpleado);
   }
 
   async update(
@@ -60,7 +63,8 @@ export class EmpleadoRepository {
   }
 
   async delete(id: number): Promise<boolean> {
-    const resultado = await this.repository.delete(id);
+    const resultado =
+      await this.repository.delete(id);
 
     return (resultado.affected ?? 0) > 0;
   }

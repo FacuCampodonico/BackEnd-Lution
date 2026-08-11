@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { HealthModule } from './health/health.module';
-import { UsuariosModule } from './usuarios/usuarios.module';
+import { EmpleadoModule } from './empleado/empleado.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -27,7 +27,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 }),
 
     HealthModule,
-    UsuariosModule,
+    EmpleadoModule,
   ],
 })
 export class AppModule {}
