@@ -3,6 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { HealthModule } from './health/health.module';
 import { EmpleadoModule } from './empleado/empleado.module';
+import { CategoriaModule } from './categoria/categoria.module';
+import { MesaModule } from './mesa/mesa.module';
+import { ProductoModule } from './producto/producto.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -28,6 +31,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
     HealthModule,
     EmpleadoModule,
+    CategoriaModule,
+    MesaModule,
+    ProductoModule,
   ],
 })
 export class AppModule {}
