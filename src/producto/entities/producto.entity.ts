@@ -19,7 +19,8 @@ export class Producto {
   descripcion: string;
 
   @Column({
-    type: 'id_categoria',
+    name: 'id_categoria',
+    type: 'int',
   })
   idCategoria: number;
 

@@ -1,3 +1,7 @@
+import { IsOptional, IsString } from 'class-validator';
+
 export class ActualizarMesaDto {
-    estado?: string;
+  @IsString()
+  @IsOptional()
+  estado?: string;
 }

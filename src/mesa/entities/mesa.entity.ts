@@ -14,4 +14,11 @@ export class Mesa {
     unique: true,
   })
   numero: number;
+
+  @Column({
+    type: 'varchar',
+    length: 50,
+    default: 'libre',
+  })
+  estado: string;
 }
