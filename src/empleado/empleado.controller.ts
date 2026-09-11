@@ -25,7 +25,7 @@ export class EmpleadoController {
     return this.empleadoService.findAll();
   }
 
-  @Post()
+  @Post('crear-empleado')
   @HttpCode(HttpStatus.CREATED)
   crear(@Body() datos: CrearEmpleadoDto): Promise<Empleado> {
     return this.empleadoService.create(datos);
