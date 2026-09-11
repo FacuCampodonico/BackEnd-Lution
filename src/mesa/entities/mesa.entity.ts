@@ -1,7 +1,9 @@
+import { Pedido } from 'src/pedido/entities/pedido.entity';
 import { 
     Entity, 
     PrimaryGeneratedColumn, 
-    Column
+    Column,
+    OneToMany
  } from 'typeorm';
 
 @Entity('mesa')
@@ -21,4 +23,7 @@ export class Mesa {
     default: 'libre',
   })
   estado: string;
+
+  @OneToMany(() => Pedido, pedido => pedido.mesas)
+  pedido: Pedido;
 }

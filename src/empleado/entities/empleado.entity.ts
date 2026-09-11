@@ -4,8 +4,10 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { EmpleadoTipoRol } from './empleado-tipo-rol.entity';
+import { Pedido } from 'src/pedido/entities/pedido.entity';
 
 @Entity('empleado')
 export class Empleado {
@@ -41,5 +43,9 @@ export class Empleado {
     referencedColumnName: 'id',
   })
   tipoRol: EmpleadoTipoRol;
+
+
+  @OneToMany(() => Pedido, pedido => pedido.empleado)
+  pedido: Pedido;
 }
 
