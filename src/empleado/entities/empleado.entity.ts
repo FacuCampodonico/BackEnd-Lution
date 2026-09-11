@@ -42,3 +42,4 @@ export class Empleado {
   })
   tipoRol: EmpleadoTipoRol;
 }
+
