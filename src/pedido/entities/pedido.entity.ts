@@ -4,9 +4,11 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Empleado } from '../../empleado/entities/empleado.entity';
 import { Mesa } from '../../mesa/entities/mesa.entity';
+import { PedidoProducto } from './pedido-producto.entity';
 
 @Entity('pedido')
 export class Pedido {
@@ -53,4 +55,7 @@ export class Pedido {
   @ManyToOne(() => Mesa, (mesa) => mesa.pedidos)
   @JoinColumn({ name: 'mesa_id' })
   mesa: Mesa;
+
+  @OneToMany(() => PedidoProducto, (pedidoProducto) => pedidoProducto.pedido)
+  productos: PedidoProducto[];
 }
