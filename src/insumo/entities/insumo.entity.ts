@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Receta } from 'src/producto/entities/receta.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
 export const UNIDADES_MEDIDA = ['G', 'KG', 'ML', 'L', 'UNIDAD'] as const;
 
@@ -30,4 +31,7 @@ export class Insumo {
     enum: UNIDADES_MEDIDA,
   })
   unidadMedida: UnidadMedida;
+
+  @OneToMany(() => Receta, (receta) => receta.insumo)
+  recetas: Receta[];
 }

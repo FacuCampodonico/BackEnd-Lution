@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Categoria } from '../../categoria/entities/categoria.entity';
 import { PedidoProducto } from '../../pedido/entities/pedido-producto.entity';
+import { Receta } from './receta.entity';
 
 @Entity('producto')
 export class Producto {
@@ -38,4 +39,7 @@ export class Producto {
 
   @OneToMany(() => PedidoProducto, (pedidoProducto) => pedidoProducto.producto)
   pedidos: PedidoProducto[];
+
+  @OneToMany(() => Receta, (receta) => receta.producto)
+  recetas: Receta[];
 }
