@@ -1,18 +1,27 @@
-import { IsEmail, IsInt, IsNotEmpty, IsString, MaxLength } from 'class-validator';
-
+import {
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { UNIDADES_MEDIDA } from '../entities/insumo.entity';
+import type { UnidadMedida } from '../entities/insumo.entity';
 
 export class CrearInsumoDto {
   @IsString()
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  @MaxLength(120)
+  @MaxLength(100)
   nombre: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'El stock disponible es obligatorio' })
-  @MaxLength(20)
+  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'El stock debe ser numérico' })
+  @Min(0, { message: 'El stock no puede ser negativo' })
   stockDisponible: number;
 
-  @IsInt({ message: 'La unidad de medida debe ser un número entero' })
+  @IsIn(UNIDADES_MEDIDA, {
+    message: `La unidad de medida debe ser una de: ${UNIDADES_MEDIDA.join(', ')}`,
+  })
   @IsNotEmpty({ message: 'La unidad de medida es obligatoria' })
-  unidadMedida: number;
+  unidadMedida: UnidadMedida;
 }

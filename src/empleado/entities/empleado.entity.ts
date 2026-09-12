@@ -7,7 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { EmpleadoTipoRol } from './empleado-tipo-rol.entity';
-import { Pedido } from 'src/pedido/entities/pedido.entity';
+import { Pedido } from '../../pedido/entities/pedido.entity';
 
 @Entity('empleado')
 export class Empleado {
@@ -45,7 +45,7 @@ export class Empleado {
   tipoRol: EmpleadoTipoRol;
 
 
-  @OneToMany(() => Pedido, pedido => pedido.empleado)
-  pedido: Pedido;
+  @OneToMany(() => Pedido, (pedido) => pedido.empleado)
+  pedidos: Pedido[];
 }
 

@@ -1,4 +1,4 @@
-import { Pedido } from 'src/pedido/entities/pedido.entity';
+import { Pedido } from '../../pedido/entities/pedido.entity';
 import { 
     Entity, 
     PrimaryGeneratedColumn, 
@@ -24,6 +24,6 @@ export class Mesa {
   })
   estado: string;
 
-  @OneToMany(() => Pedido, pedido => pedido.mesas)
-  pedido: Pedido;
+  @OneToMany(() => Pedido, (pedido) => pedido.mesa)
+  pedidos: Pedido[];
 }

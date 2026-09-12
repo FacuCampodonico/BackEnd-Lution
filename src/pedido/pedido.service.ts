@@ -2,17 +2,17 @@
 
 
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { pedidoRepository } from './pedido.repository';
+import { PedidoRepository } from './pedido.repository';
 import { CrearPedidoDto } from './dto/crear-pedido.dto';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 
 @Injectable()
 export class PedidoService {
-  constructor(private readonly pedidoRepository: pedidoRepository) {}
+  constructor(private readonly pedidoRepository: PedidoRepository) {}
 
-  create(crearpedidoDto: CrearPedidoDto) {
-    return this.pedidoRepository.create(crearpedidoDto);
-  }
+//   create(crearpedidoDto: CrearPedidoDto) {
+//     return this.pedidoRepository.create(crearpedidoDto);
+//   }
 
   findAll() {
     return this.pedidoRepository.findAll();

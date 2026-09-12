@@ -7,7 +7,6 @@ import {
 } from 'typeorm';
 import { Empleado } from '../../empleado/entities/empleado.entity';
 import { Mesa } from '../../mesa/entities/mesa.entity';
-import { OneToMany } from 'typeorm/browser';
 
 @Entity('pedido')
 export class Pedido {
@@ -15,29 +14,43 @@ export class Pedido {
   id: number;
 
   @Column({
+    name: 'fecha_hora_inicio',
     type: 'datetime',
-    length: 100,
   })
   fechaHoraInicio: Date;
 
-    @Column({
+  @Column({
+    name: 'fecha_hora_cierre',
     type: 'datetime',
-    length: 100,
+    nullable: true,
   })
-  fechaHoraCierre: Date;
+  fechaHoraCierre: Date | null;
 
   @Column({
-    type: 'float',
-    scale: 255,
+    type: 'decimal',
     precision: 10,
+    scale: 2,
+    nullable: true,
   })
-  total: number;
+  total: number | null;
 
-  @ManyToOne(() => Empleado, empleado => empleado.pedido)
+  @Column({
+    name: 'empleado_id',
+    type: 'int',
+  })
+  empleadoId: number;
+
+  @Column({
+    name: 'mesa_id',
+    type: 'int',
+  })
+  mesaId: number;
+
+  @ManyToOne(() => Empleado, (empleado) => empleado.pedidos)
   @JoinColumn({ name: 'empleado_id' })
   empleado: Empleado;
 
-  @ManyToOne(() => Mesa, mesa => mesa.pedido)
+  @ManyToOne(() => Mesa, (mesa) => mesa.pedidos)
   @JoinColumn({ name: 'mesa_id' })
-  mesas: Mesa[];
+  mesa: Mesa;
 }

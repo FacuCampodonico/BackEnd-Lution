@@ -6,6 +6,8 @@ import { EmpleadoModule } from './empleado/empleado.module';
 import { CategoriaModule } from './categoria/categoria.module';
 import { MesaModule } from './mesa/mesa.module';
 import { ProductoModule } from './producto/producto.module';
+import { PedidoModule } from './pedido/pedido.module';
+import { InsumoModule } from './insumo/insumo.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -34,6 +36,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     CategoriaModule,
     MesaModule,
     ProductoModule,
+    PedidoModule,
+    InsumoModule,
   ],
 })
 export class AppModule {}

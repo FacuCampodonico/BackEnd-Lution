@@ -25,11 +25,11 @@ export class PedidoController {
     return this.pedidoService.findAll();
   }
 
-  @Post('crear-pedido')
-  @HttpCode(HttpStatus.CREATED)
-  crear(@Body() datos: CrearPedidoDto): Promise<Pedido> {
-    return this.pedidoService.create(datos);
-  }
+//   @Post('crear-pedido')
+//   @HttpCode(HttpStatus.CREATED)
+//   crear(@Body() datos: CrearPedidoDto): Promise<Pedido> {
+//     return this.pedidoService.create(datos);
+//   }
 
   @Get(':id')
   getById(@Param('id', ParseIntPipe) id: number): Promise<Pedido> {

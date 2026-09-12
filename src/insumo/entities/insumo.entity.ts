@@ -1,5 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Categoria } from '../../categoria/entities/categoria.entity';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+
+export const UNIDADES_MEDIDA = ['G', 'KG', 'ML', 'L', 'UNIDAD'] as const;
+
+export type UnidadMedida = (typeof UNIDADES_MEDIDA)[number];
 
 @Entity('insumo')
 export class Insumo {
@@ -8,24 +11,23 @@ export class Insumo {
 
   @Column({
     type: 'varchar',
-    length: 120,
+    length: 100,
   })
   nombre: string;
 
   @Column({
-    type: 'float',
-    scale: 255,
+    name: 'stock_disponible',
+    type: 'decimal',
     precision: 10,
+    scale: 2,
+    default: 0,
   })
   stockDisponible: number;
 
   @Column({
-    name: 'id_categoria',
-    type: 'int',
+    name: 'unidad_medida',
+    type: 'enum',
+    enum: UNIDADES_MEDIDA,
   })
-  unidadMedida: number;
-
-  @ManyToOne(() => Categoria)
-  @JoinColumn({ name: 'id_categoria' })
-  categoria: Categoria;
+  unidadMedida: UnidadMedida;
 }
