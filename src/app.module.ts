@@ -8,6 +8,8 @@ import { MesaModule } from './mesa/mesa.module';
 import { ProductoModule } from './producto/producto.module';
 import { PedidoModule } from './pedido/pedido.module';
 import { InsumoModule } from './insumo/insumo.module';
+import { PagoModule } from './pago/pago.module';
+import {PedidoProductoModule} from './pedido-producto/pedido-producto.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -38,6 +40,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ProductoModule,
     PedidoModule,
     InsumoModule,
+    PagoModule,
+    PedidoProductoModule,
   ],
 })
 export class AppModule {}
