@@ -28,7 +28,7 @@ export class PedidoProducto {
   })
   comentario: string | null;
 
-  @ManyToOne(() => Pedido, (pedido) => pedido.productos)
+  @ManyToOne(() => Pedido, (pedido) => pedido.pedidosProductos)
   @JoinColumn({ name: 'pedido_id' })
   pedido: Pedido;
 
