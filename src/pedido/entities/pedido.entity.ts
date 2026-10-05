@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { Empleado } from '../../empleado/entities/empleado.entity';
 import { Mesa } from '../../mesa/entities/mesa.entity';
-import { PedidoProducto } from '../../pedido-producto/entities/pedido-producto.entity';
+import { PedidoProducto } from './pedido-producto.entity';
 
 @Entity('pedido')
 export class Pedido {

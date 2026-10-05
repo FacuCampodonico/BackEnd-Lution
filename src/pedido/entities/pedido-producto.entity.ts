@@ -1,20 +1,17 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Producto } from '../../producto/entities/producto.entity';
 import { Pedido } from './pedido.entity';
 
 @Entity('pedido_producto')
 export class PedidoProducto {
-  @PrimaryColumn({
-    name: 'pedido_id',
-    type: 'int',
-  })
-  pedidoId: number;
-
-  @PrimaryColumn({
-    name: 'producto_id',
-    type: 'int',
-  })
-  productoId: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({
     type: 'int',
@@ -28,7 +25,21 @@ export class PedidoProducto {
   })
   comentario: string | null;
 
-  @ManyToOne(() => Pedido, (pedido) => pedido.pedidosProductos)
+  @Column({
+    name: 'pedido_id',
+    type: 'int',
+  })
+  pedidoId: number;
+
+  @Column({
+    name: 'producto_id',
+    type: 'int',
+  })
+  productoId: number;
+
+  @ManyToOne(() => Pedido, (pedido) => pedido.pedidosProductos, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'pedido_id' })
   pedido: Pedido;
 
