@@ -14,6 +14,9 @@ import { CrearPedidoDto } from './dto/crear-pedido.dto';
 import { PedidoService } from './pedido.service';
 import  { Pedido } from './entities/pedido.entity';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
+import { PedidoProducto } from './entities/pedido-producto.entity';
+import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
+import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 
 
 @Controller('pedido')
@@ -54,4 +57,41 @@ async delete(
     message: 'Pedido eliminado correctamente',
   };
 }
+
+  @Get(':id/productos')
+  getProductos(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<PedidoProducto[]> {
+    return this.pedidoService.findProductos(id);
+  }
+
+  @Post(':id/productos')
+  @HttpCode(HttpStatus.CREATED)
+  agregarProducto(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CrearPedidoProductoDto,
+  ): Promise<PedidoProducto> {
+    return this.pedidoService.agregarProducto(id, dto);
+  }
+
+  @Patch(':id/productos/:itemId')
+  actualizarProducto(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: ActualizarPedidoProductoDto,
+  ) {
+    return this.pedidoService.actualizarProducto(id, itemId, dto);
+  }
+
+  @Delete(':id/productos/:itemId')
+  async eliminarProducto(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+  ) {
+    await this.pedidoService.eliminarProducto(id, itemId);
+
+    return {
+      message: 'Producto eliminado del pedido correctamente',
+    };
+  }
 }

@@ -1,14 +1,26 @@
 
 
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PedidoRepository } from './pedido.repository';
+import { PedidoProductoRepository } from './pedido-producto.repository';
+import { ProductoService } from '../producto/services/producto.service';
 import { CrearPedidoDto } from './dto/crear-pedido.dto';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
+import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
+import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 
 @Injectable()
 export class PedidoService {
-  constructor(private readonly pedidoRepository: PedidoRepository) {}
+  constructor(
+    private readonly pedidoRepository: PedidoRepository,
+    private readonly pedidoProductoRepository: PedidoProductoRepository,
+    private readonly productoService: ProductoService,
+  ) {}
 
 //   create(crearpedidoDto: CrearPedidoDto) {
 //     return this.pedidoRepository.create(crearpedidoDto);
@@ -34,5 +46,52 @@ export class PedidoService {
   async delete(id: number) {
     await this.findById(id);
     return this.pedidoRepository.remove(id);
+  }
+
+  async findProductos(pedidoId: number) {
+    await this.findById(pedidoId);
+    return this.pedidoProductoRepository.findByPedido(pedidoId);
+  }
+
+  async agregarProducto(pedidoId: number, dto: CrearPedidoProductoDto) {
+    await this.findPedidoAbierto(pedidoId);
+    await this.productoService.findOne(dto.productoId);
+    return this.pedidoProductoRepository.create(pedidoId, dto);
+  }
+
+  async actualizarProducto(
+    pedidoId: number,
+    itemId: number,
+    dto: ActualizarPedidoProductoDto,
+  ) {
+    await this.findPedidoAbierto(pedidoId);
+    await this.findItem(pedidoId, itemId);
+    return this.pedidoProductoRepository.update(pedidoId, itemId, dto);
+  }
+
+  async eliminarProducto(pedidoId: number, itemId: number) {
+    await this.findPedidoAbierto(pedidoId);
+    await this.findItem(pedidoId, itemId);
+    return this.pedidoProductoRepository.remove(pedidoId, itemId);
+  }
+
+  private async findPedidoAbierto(id: number) {
+    const pedido = await this.findById(id);
+    if (pedido.fechaHoraCierre) {
+      throw new BadRequestException(
+        `El pedido con ID ${id} está cerrado y no se puede modificar`,
+      );
+    }
+    return pedido;
+  }
+
+  private async findItem(pedidoId: number, itemId: number) {
+    const item = await this.pedidoProductoRepository.findOne(pedidoId, itemId);
+    if (!item) {
+      throw new NotFoundException(
+        `Item con ID ${itemId} no encontrado en el pedido ${pedidoId}`,
+      );
+    }
+    return item;
   }
 }
