@@ -1,11 +1,10 @@
-
-
-
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { PedidoRepository } from './pedido.repository';
 import { PedidoProductoRepository } from './pedido-producto.repository';
 import { ProductoService } from '../producto/services/producto.service';
@@ -13,6 +12,11 @@ import { CrearPedidoDto } from './dto/crear-pedido.dto';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
+import { CrearPedidoMesaDto } from './dto/crear-pedido-mesa.dto';
+import { Pedido, EstadoPedido } from './entities/pedido.entity';
+import { Mesa, EstadoMesa } from '../mesa/entities/mesa.entity';
+import { PedidoProducto } from './entities/pedido-producto.entity';
+import { Producto } from '../producto/entities/producto.entity';
 
 @Injectable()
 export class PedidoService {
@@ -20,11 +24,107 @@ export class PedidoService {
     private readonly pedidoRepository: PedidoRepository,
     private readonly pedidoProductoRepository: PedidoProductoRepository,
     private readonly productoService: ProductoService,
+    private readonly dataSource: DataSource,
   ) {}
 
-//   create(crearpedidoDto: CrearPedidoDto) {
-//     return this.pedidoRepository.create(crearpedidoDto);
-//   }
+  async obtenerPedidoAbiertoPorMesa(mesaId: number) {
+    const pedido = await this.pedidoRepository.findPedidoAbiertoByMesa(mesaId);
+
+    if (!pedido) {
+      return null;
+    }
+
+    const itemsFormateados = (pedido.pedidosProductos || []).map((item) => {
+      const precioUnitario = Number(item.producto?.precio || 0);
+      return {
+        id: item.id,
+        productoId: item.productoId,
+        productoNombre: item.producto?.nombre || '',
+        cantidad: item.cantidad,
+        precioUnitario,
+        subtotal: precioUnitario * item.cantidad,
+      };
+    });
+
+    const total = itemsFormateados.reduce(
+      (acc, item) => acc + item.subtotal,
+      0,
+    );
+
+    return {
+      id: pedido.id,
+      mesaId: pedido.mesaId,
+      empleadoId: pedido.empleadoId,
+      estado: pedido.estado,
+      fechaHoraInicio: pedido.fechaHoraInicio,
+      total,
+      items: itemsFormateados,
+    };
+  }
+
+  async crearPedidoPorMesa(mesaId: number, dto: CrearPedidoMesaDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const mesa = await queryRunner.manager.findOne(Mesa, {
+        where: { id: mesaId },
+      });
+      if (!mesa) {
+        throw new NotFoundException(`La mesa con ID ${mesaId} no existe`);
+      }
+
+      const pedidoExistente = await queryRunner.manager.findOne(Pedido, {
+        where: { mesaId, estado: EstadoPedido.ABIERTO },
+      });
+
+      if (pedidoExistente) {
+        throw new ConflictException(
+          `La mesa ${mesaId} ya tiene un pedido abierto activo`,
+        );
+      }
+
+      const nuevoPedido = queryRunner.manager.create(Pedido, {
+        mesaId,
+        empleadoId: dto.empleadoId || null,
+        estado: EstadoPedido.ABIERTO,
+        fechaHoraInicio: new Date(),
+      });
+      const pedidoGuardado = await queryRunner.manager.save(nuevoPedido);
+
+      for (const itemDto of dto.items) {
+        const producto = await queryRunner.manager.findOne(Producto, {
+          where: { id: itemDto.productoId },
+        });
+        if (!producto) {
+          throw new NotFoundException(
+            `El producto con ID ${itemDto.productoId} no existe`,
+          );
+        }
+
+        const itemPedido = queryRunner.manager.create(PedidoProducto, {
+          pedidoId: pedidoGuardado.id,
+          productoId: itemDto.productoId,
+          cantidad: itemDto.cantidad,
+        });
+        await queryRunner.manager.save(itemPedido);
+      }
+
+      mesa.estado = EstadoMesa.ABIERTA;
+      await queryRunner.manager.save(mesa);
+
+      await queryRunner.commitTransaction();
+
+      return this.obtenerPedidoAbiertoPorMesa(mesaId);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
 
   findAll() {
     return this.pedidoRepository.findAll();
@@ -37,10 +137,10 @@ export class PedidoService {
     }
     return pedido;
   }
-  
-  async update(id: number, ActualizarPedidoDto: ActualizarPedidoDto) {
+
+  async update(id: number, actualizarPedidoDto: ActualizarPedidoDto) {
     await this.findById(id);
-    return this.pedidoRepository.update(id, ActualizarPedidoDto);
+    return this.pedidoRepository.update(id, actualizarPedidoDto);
   }
 
   async delete(id: number) {

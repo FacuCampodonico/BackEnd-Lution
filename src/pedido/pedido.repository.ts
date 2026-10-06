@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Pedido } from './entities/pedido.entity';
+import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { CrearPedidoDto } from './dto/crear-pedido.dto';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 
@@ -33,4 +33,18 @@ export class PedidoRepository {
   async remove(id: number): Promise<void> {
     await this.repository.delete(id);
   }
+
+  async findPedidoAbiertoByMesa(mesaId: number): Promise<Pedido | null> {
+  return await this.repository.findOne({
+    where: {
+      mesaId,
+      estado: EstadoPedido.ABIERTO,
+    },
+    relations: {
+      pedidosProductos: {
+        producto: true,
+      },
+    },
+  });
+}
 }
