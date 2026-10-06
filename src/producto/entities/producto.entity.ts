@@ -34,7 +34,7 @@ export class Producto {
   })
   idCategoria: number;
 
-  @ManyToOne(() => Categoria, (categoria) => categoria.productos, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => Categoria, (categoria) => categoria.productos, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_categoria' })
   categoria: Categoria;
 
