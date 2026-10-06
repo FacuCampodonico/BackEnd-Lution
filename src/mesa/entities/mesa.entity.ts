@@ -6,6 +6,12 @@ import {
     OneToMany
  } from 'typeorm';
 
+export enum EstadoMesa {
+  LIBRE = 'libre',
+  ABIERTA = 'abierta',
+  POR_PAGAR = 'por_pagar',
+}
+
 @Entity('mesa')
 export class Mesa {
   @PrimaryGeneratedColumn()
@@ -18,11 +24,11 @@ export class Mesa {
   numero: number;
 
   @Column({
-    type: 'varchar',
-    length: 50,
-    default: 'libre',
+    type: 'enum',
+    enum: EstadoMesa,
+    default: EstadoMesa.LIBRE,
   })
-  estado: string;
+  estado: EstadoMesa;
 
   @OneToMany(() => Pedido, (pedido) => pedido.mesa)
   pedidos: Pedido[];

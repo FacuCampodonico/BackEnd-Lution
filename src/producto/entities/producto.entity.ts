@@ -20,13 +20,21 @@ export class Producto {
   })
   descripcion: string;
 
+  @Column({ 
+    type: 'decimal', 
+    precision: 10, 
+    scale: 2, 
+    default: 0
+  })
+  precio: number;
+
   @Column({
     name: 'id_categoria',
     type: 'int',
   })
   idCategoria: number;
 
-  @ManyToOne(() => Categoria)
+  @ManyToOne(() => Categoria, (categoria) => categoria.productos, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'id_categoria' })
   categoria: Categoria;
 

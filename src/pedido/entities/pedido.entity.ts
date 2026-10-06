@@ -5,10 +5,17 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { Empleado } from '../../empleado/entities/empleado.entity';
 import { Mesa } from '../../mesa/entities/mesa.entity';
 import { PedidoProducto } from './pedido-producto.entity';
+import { Pago } from '../../pago/entities/pago.entity';
+
+export enum EstadoPedido {
+  ABIERTO = 'abierto',
+  PAGADO = 'pagado',
+}
 
 @Entity('pedido')
 export class Pedido {
@@ -29,6 +36,13 @@ export class Pedido {
   fechaHoraCierre: Date | null;
 
   @Column({
+    type: 'enum',
+    enum: EstadoPedido,
+    default: EstadoPedido.ABIERTO,
+  })
+  estado: EstadoPedido;
+
+  @Column({
     type: 'decimal',
     precision: 10,
     scale: 2,
@@ -39,8 +53,9 @@ export class Pedido {
   @Column({
     name: 'empleado_id',
     type: 'int',
+    nullable: true,
   })
-  empleadoId: number;
+  empleadoId: number | null;
 
   @Column({
     name: 'mesa_id',
@@ -48,7 +63,7 @@ export class Pedido {
   })
   mesaId: number;
 
-  @ManyToOne(() => Empleado, (empleado) => empleado.pedidos)
+  @ManyToOne(() => Empleado, (empleado) => empleado.pedidos, { nullable: true })
   @JoinColumn({ name: 'empleado_id' })
   empleado: Empleado;
 
@@ -58,4 +73,7 @@ export class Pedido {
 
   @OneToMany(() => PedidoProducto, (pedidoProducto) => pedidoProducto.pedido)
   pedidosProductos: PedidoProducto[];
+
+  @OneToOne(() => Pago, (pago) => pago.pedido)
+  pago: Pago;
 }
