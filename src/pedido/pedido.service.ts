@@ -17,6 +17,9 @@ import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { Mesa, EstadoMesa } from '../mesa/entities/mesa.entity';
 import { PedidoProducto } from './entities/pedido-producto.entity';
 import { Producto } from '../producto/entities/producto.entity';
+import { Pago } from '../pago/entities/pago.entity';
+import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
+import { TipoPago } from '../pago/enums/tipo-pago.enum';
 
 @Injectable()
 export class PedidoService {
@@ -117,6 +120,83 @@ export class PedidoService {
       await queryRunner.commitTransaction();
 
       return this.obtenerPedidoAbiertoPorMesa(mesaId);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+
+  async registrarPago(pedidoId: number, dto: CrearPagoDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const pedido = await queryRunner.manager.findOne(Pedido, {
+        where: { id: pedidoId },
+        relations: {
+          pedidosProductos: {
+            producto: true,
+          },
+          mesa: true,
+        },
+      });
+
+      if (!pedido) {
+        throw new NotFoundException(`El pedido con ID ${pedidoId} no existe`);
+      }
+
+      if (pedido.estado === EstadoPedido.PAGADO) {
+        throw new ConflictException(`El pedido con ID ${pedidoId} ya fue pagado`);
+      }
+
+      const totalCalculado = (pedido.pedidosProductos || []).reduce((acc, item) => {
+        const precio = Number(item.producto?.precio || 0);
+        return acc + precio * item.cantidad;
+      }, 0);
+
+      let vuelto = 0;
+      if (dto.tipo === TipoPago.EFECTIVO) {
+        if (!dto.pagaCon || dto.pagaCon < totalCalculado) {
+          throw new BadRequestException(
+            `El monto abonado ($${dto.pagaCon || 0}) es insuficiente para cubrir el total ($${totalCalculado})`,
+          );
+        }
+        vuelto = dto.pagaCon - totalCalculado;
+      }
+
+      const nuevoPago = queryRunner.manager.create(Pago, {
+        tipo: dto.tipo,
+        pagaCon: dto.pagaCon || null,
+        vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : null,
+        titular: dto.titular || null,
+        marca: dto.marca || null,
+        cuotas: dto.cuotas || null,
+        pedidoId: pedido.id,
+      }as unknown as Pago);
+      await queryRunner.manager.save(nuevoPago);
+
+      pedido.estado = EstadoPedido.PAGADO;
+      pedido.total = totalCalculado;
+      pedido.fechaHoraCierre = new Date();
+      await queryRunner.manager.save(pedido);
+
+      if (pedido.mesa) {
+        pedido.mesa.estado = EstadoMesa.POR_PAGAR;
+        await queryRunner.manager.save(pedido.mesa);
+      }
+
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Pago registrado con éxito',
+        pedidoId: pedido.id,
+        total: totalCalculado,
+        vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : 0,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

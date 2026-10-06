@@ -23,6 +23,12 @@ export class MesaController {
     private readonly pedidoService: PedidoService,
   ) {}
 
+  @Post(':mesaId/cerrar')
+  @HttpCode(HttpStatus.OK)
+  cerrarMesa(@Param('mesaId', ParseIntPipe) mesaId: number) {
+    return this.mesaService.cerrarMesa(mesaId);
+  }
+
   @Post()
   create(@Body() crearMesaDto: CrearMesaDto) {
     return this.mesaService.create(crearMesaDto);

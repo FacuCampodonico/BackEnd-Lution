@@ -1,7 +1,8 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsEnum } from 'class-validator';
+import { EstadoMesa } from '../entities/mesa.entity';
 
 export class ActualizarMesaDto {
-  @IsString()
+  @IsEnum(EstadoMesa)
   @IsOptional()
-  estado?: string;
+  estado?: EstadoMesa;
 }

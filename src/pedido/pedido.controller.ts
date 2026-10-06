@@ -17,6 +17,7 @@ import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 import { PedidoProducto } from './entities/pedido-producto.entity';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
+import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
 
 @Controller('pedidos')
 export class PedidoController {
@@ -60,6 +61,15 @@ export class PedidoController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<PedidoProducto[]> {
     return this.pedidoService.findProductos(id);
+  }
+
+  @Post(':pedidoId/pago')
+  @HttpCode(HttpStatus.OK)
+  registrarPago(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+    @Body() dto: CrearPagoDto,
+  ) {
+    return this.pedidoService.registrarPago(pedidoId, dto);
   }
 
   @Post(':pedidoId/items')
