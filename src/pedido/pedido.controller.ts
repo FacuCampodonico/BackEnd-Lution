@@ -12,14 +12,13 @@ import {
 } from '@nestjs/common';
 import { CrearPedidoDto } from './dto/crear-pedido.dto';
 import { PedidoService } from './pedido.service';
-import  { Pedido } from './entities/pedido.entity';
+import { Pedido } from './entities/pedido.entity';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 import { PedidoProducto } from './entities/pedido-producto.entity';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 
-
-@Controller('pedido')
+@Controller('pedidos')
 export class PedidoController {
   constructor(private readonly pedidoService: PedidoService) {}
 
@@ -28,11 +27,11 @@ export class PedidoController {
     return this.pedidoService.findAll();
   }
 
-//   @Post('crear-pedido')
-//   @HttpCode(HttpStatus.CREATED)
-//   crear(@Body() datos: CrearPedidoDto): Promise<Pedido> {
-//     return this.pedidoService.create(datos);
-//   }
+  // @Post()
+  // @HttpCode(HttpStatus.CREATED)
+  // crear(@Body() datos: CrearPedidoDto): Promise<Pedido> {
+  //   return this.pedidoService.create(datos);
+  // }
 
   @Get(':id')
   getById(@Param('id', ParseIntPipe) id: number): Promise<Pedido> {
@@ -48,47 +47,45 @@ export class PedidoController {
   }
 
   @Delete(':id')
-async delete(
-  @Param('id', ParseIntPipe) id: number,
-) {
-  await this.pedidoService.delete(id);
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    await this.pedidoService.delete(id);
 
-  return {
-    message: 'Pedido eliminado correctamente',
-  };
-}
+    return {
+      message: 'Pedido eliminado correctamente',
+    };
+  }
 
-  @Get(':id/productos')
+  @Get(':id/items')
   getProductos(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<PedidoProducto[]> {
     return this.pedidoService.findProductos(id);
   }
 
-  @Post(':id/productos')
+  @Post(':pedidoId/items')
   @HttpCode(HttpStatus.CREATED)
   agregarProducto(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
     @Body() dto: CrearPedidoProductoDto,
   ): Promise<PedidoProducto> {
-    return this.pedidoService.agregarProducto(id, dto);
+    return this.pedidoService.agregarProducto(pedidoId, dto);
   }
 
-  @Patch(':id/productos/:itemId')
+  @Patch(':pedidoId/items/:itemId')
   actualizarProducto(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() dto: ActualizarPedidoProductoDto,
   ) {
-    return this.pedidoService.actualizarProducto(id, itemId, dto);
+    return this.pedidoService.actualizarProducto(pedidoId, itemId, dto);
   }
 
-  @Delete(':id/productos/:itemId')
-  async eliminarProducto(
-    @Param('id', ParseIntPipe) id: number,
+  @Delete(':pedidoId/items/:itemId')
+  async removeItem(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
     @Param('itemId', ParseIntPipe) itemId: number,
   ) {
-    await this.pedidoService.eliminarProducto(id, itemId);
+    await this.pedidoService.eliminarProducto(pedidoId, itemId);
 
     return {
       message: 'Producto eliminado del pedido correctamente',

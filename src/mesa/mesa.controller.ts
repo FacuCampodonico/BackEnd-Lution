@@ -3,7 +3,7 @@ import { MesaService } from './mesa.service';
 import { CrearMesaDto } from './dto/crear-mesa.dto';
 import { ActualizarMesaDto } from './dto/actualizar-mesa.dto';
 
-@Controller('mesa')
+@Controller('mesas')
 export class MesaController {
   constructor(private readonly mesaService: MesaService) {}
 

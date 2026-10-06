@@ -16,7 +16,7 @@ import { InsumoService } from './insumo.service';
 import  { Insumo } from './entities/insumo.entity';
 import { ActualizarInsumoDto } from './dto/actualizar-insumo.dto';
 
-@Controller('insumo')
+@Controller('insumos')
 export class InsumoController {
   constructor(private readonly insumoService: InsumoService) {}
 
@@ -25,7 +25,7 @@ export class InsumoController {
     return this.insumoService.findAll();
   }
 
-  @Post('crear-insumo')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   crear(@Body() datos: CrearInsumoDto): Promise<Insumo> {
     return this.insumoService.create(datos);

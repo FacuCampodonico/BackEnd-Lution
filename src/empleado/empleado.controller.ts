@@ -16,7 +16,7 @@ import { EmpleadoService } from './empleado.service';
 import  { Empleado } from './entities/empleado.entity';
 import { ActualizarEmpleadoDto } from './dto/actualizar-empleado.dto';
 
-@Controller('empleado')
+@Controller('empleados')
 export class EmpleadoController {
   constructor(private readonly empleadoService: EmpleadoService) {}
 
@@ -25,7 +25,7 @@ export class EmpleadoController {
     return this.empleadoService.findAll();
   }
 
-  @Post('crear-empleado')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   crear(@Body() datos: CrearEmpleadoDto): Promise<Empleado> {
     return this.empleadoService.create(datos);

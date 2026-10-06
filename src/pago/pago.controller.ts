@@ -12,7 +12,7 @@ import { PagoService } from './pago.service';
 import { CrearPagoDto } from './dto/crear-pago.dto';
 import { ActualizarPagoDto } from './dto/actualiza-pago.dto';
 
-@Controller('pago')
+@Controller('pagos')
 export class PagoController {
   constructor(private readonly pagoService: PagoService) {}
 
