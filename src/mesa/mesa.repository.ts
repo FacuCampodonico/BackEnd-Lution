@@ -22,16 +22,19 @@ export class MesaRepository {
     return this.conPedidoAbierto().getMany();
   }
 
-  async findOne(id: number): Promise<Mesa | null> {
-    return this.conPedidoAbierto().where('mesa.id = :id', { id }).getOne();
+  async findOne(id: number, manager?: EntityManager): Promise<Mesa | null> {
+    return this.conPedidoAbierto(manager)
+      .where('mesa.id = :id', { id })
+      .getOne();
   }
 
   async save(mesa: Mesa, manager: EntityManager): Promise<Mesa> {
     return manager.getRepository(Mesa).save(mesa);
   }
 
-  private conPedidoAbierto() {
-    return this.repository
+  private conPedidoAbierto(manager?: EntityManager) {
+    const repository = manager ? manager.getRepository(Mesa) : this.repository;
+    return repository
       .createQueryBuilder('mesa')
       .leftJoinAndSelect('mesa.pedidos', 'pedido', 'pedido.estado = :estado', {
         estado: EstadoPedido.ABIERTO,

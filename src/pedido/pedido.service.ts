@@ -20,9 +20,8 @@ import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 import { CrearPedidoMesaDto } from './dto/crear-pedido-mesa.dto';
 import { Pedido, EstadoPedido } from './entities/pedido.entity';
-import { Mesa, EstadoMesa } from '../mesa/entities/mesa.entity';
-import { PedidoProducto } from './entities/pedido-producto.entity';
-import { Producto } from '../producto/entities/producto.entity';
+import { EstadoMesa } from '../mesa/entities/mesa.entity';
+import { ProductoRepository } from '../producto/repositories/producto.repository';
 import { PagoRepository } from '../pago/pago.repository';
 import { MesaRepository } from '../mesa/mesa.repository';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
@@ -37,6 +36,7 @@ export class PedidoService {
     private readonly dataSource: DataSource,
     private readonly pagoRepository: PagoRepository,
     private readonly mesaRepository: MesaRepository,
+    private readonly productoRepository: ProductoRepository,
   ) {}
 
   async obtenerPedidoAbiertoPorMesa(
@@ -59,21 +59,14 @@ export class PedidoService {
     mesaId: number,
     dto: CrearPedidoMesaDto,
   ): Promise<PedidoResponse | null> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const mesa = await queryRunner.manager.findOne(Mesa, {
-        where: { id: mesaId },
-      });
+    return this.dataSource.transaction(async (manager) => {
+      const mesa = await this.mesaRepository.findOne(mesaId, manager);
       if (!mesa) {
         throw new NotFoundException(`La mesa con ID ${mesaId} no existe`);
       }
 
-      const pedidoExistente = await queryRunner.manager.findOne(Pedido, {
-        where: { mesaId, estado: EstadoPedido.ABIERTO },
-      });
+      const pedidoExistente =
+        await this.pedidoRepository.findPedidoAbiertoByMesa(mesaId, manager);
 
       if (pedidoExistente) {
         throw new ConflictException(
@@ -81,44 +74,43 @@ export class PedidoService {
         );
       }
 
-      const nuevoPedido = queryRunner.manager.create(Pedido, {
-        mesaId,
-        empleadoId: dto.empleadoId || null,
-        estado: EstadoPedido.ABIERTO,
-        fechaHoraInicio: new Date(),
-      });
-      const pedidoGuardado = await queryRunner.manager.save(nuevoPedido);
+      const pedidoGuardado = await this.pedidoRepository.create(
+        {
+          mesaId,
+          empleadoId: dto.empleadoId || null,
+          estado: EstadoPedido.ABIERTO,
+          fechaHoraInicio: new Date(),
+        },
+        manager,
+      );
 
       for (const itemDto of dto.items) {
-        const producto = await queryRunner.manager.findOne(Producto, {
-          where: { id: itemDto.productoId },
-        });
+        const producto = await this.productoRepository.findOne(
+          itemDto.productoId,
+          manager,
+        );
         if (!producto) {
           throw new NotFoundException(
             `El producto con ID ${itemDto.productoId} no existe`,
           );
         }
 
-        const itemPedido = queryRunner.manager.create(PedidoProducto, {
-          pedidoId: pedidoGuardado.id,
-          productoId: itemDto.productoId,
-          cantidad: itemDto.cantidad,
-        });
-        await queryRunner.manager.save(itemPedido);
+        await this.pedidoProductoRepository.create(
+          pedidoGuardado.id,
+          itemDto,
+          manager,
+        );
       }
 
       mesa.estado = EstadoMesa.ABIERTA;
-      await queryRunner.manager.save(mesa);
+      await this.mesaRepository.save(mesa, manager);
 
-      await queryRunner.commitTransaction();
-
-      return this.obtenerPedidoAbiertoPorMesa(mesaId);
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+      const pedido = await this.pedidoRepository.findPedidoAbiertoByMesa(
+        mesaId,
+        manager,
+      );
+      return pedido ? pedidoResponse(pedido) : null;
+    });
   }
 
   async registrarPago(

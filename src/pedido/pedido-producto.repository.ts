@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type EntityManager } from 'typeorm';
 import { PedidoProducto } from './entities/pedido-producto.entity';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
@@ -15,9 +15,13 @@ export class PedidoProductoRepository {
   async create(
     pedidoId: number,
     crearDto: CrearPedidoProductoDto,
+    manager?: EntityManager,
   ): Promise<PedidoProducto> {
-    const nuevo = this.repository.create({ ...crearDto, pedidoId });
-    return await this.repository.save(nuevo);
+    const repository = manager
+      ? manager.getRepository(PedidoProducto)
+      : this.repository;
+    const nuevo = repository.create({ ...crearDto, pedidoId });
+    return await repository.save(nuevo);
   }
 
   async findByPedido(pedidoId: number): Promise<PedidoProducto[]> {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, type EntityManager } from 'typeorm';
+import { Repository, type DeepPartial, type EntityManager } from 'typeorm';
 import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 
@@ -10,6 +10,14 @@ export class PedidoRepository {
     @InjectRepository(Pedido)
     private readonly repository: Repository<Pedido>,
   ) {}
+
+  async create(
+    datos: DeepPartial<Pedido>,
+    manager: EntityManager,
+  ): Promise<Pedido> {
+    const repository = manager.getRepository(Pedido);
+    return repository.save(datos);
+  }
 
   async findAll(): Promise<Pedido[]> {
     return await this.repository.find({
@@ -53,8 +61,14 @@ export class PedidoRepository {
     await this.repository.delete(id);
   }
 
-  async findPedidoAbiertoByMesa(mesaId: number): Promise<Pedido | null> {
-    return await this.repository.findOne({
+  async findPedidoAbiertoByMesa(
+    mesaId: number,
+    manager?: EntityManager,
+  ): Promise<Pedido | null> {
+    const repository = manager
+      ? manager.getRepository(Pedido)
+      : this.repository;
+    return await repository.findOne({
       where: {
         mesaId,
         estado: EstadoPedido.ABIERTO,

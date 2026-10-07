@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type EntityManager } from 'typeorm';
 import { Producto } from '../entities/producto.entity';
 import { CrearProductoDto } from '../dto/crear-producto.dto';
 import { ActualizarProductoDto } from '../dto/actualizar-producto.dto';
@@ -24,8 +24,11 @@ export class ProductoRepository {
     });
   }
 
-  async findOne(id: number): Promise<Producto | null> {
-    return await this.repository.findOne({
+  async findOne(id: number, manager?: EntityManager): Promise<Producto | null> {
+    const repository = manager
+      ? manager.getRepository(Producto)
+      : this.repository;
+    return await repository.findOne({
       where: { id },
       relations: { categoria: true, recetas: true },
     });
