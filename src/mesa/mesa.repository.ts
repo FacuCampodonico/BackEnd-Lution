@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, type EntityManager } from 'typeorm';
 import { Mesa } from './entities/mesa.entity';
+import { EstadoPedido } from '../pedido/entities/pedido.entity';
 import { CrearMesaDto } from './dto/crear-mesa.dto';
 import { ActualizarMesaDto } from './dto/actualizar-mesa.dto';
 
@@ -18,14 +19,31 @@ export class MesaRepository {
   }
 
   async findAll(): Promise<Mesa[]> {
-    return await this.repository.find();
+    return this.conPedidoAbierto().getMany();
   }
 
   async findOne(id: number): Promise<Mesa | null> {
-    return await this.repository.findOneBy({ id });
+    return this.conPedidoAbierto().where('mesa.id = :id', { id }).getOne();
   }
 
-  async update(id: number, actualizarMesaDto: ActualizarMesaDto): Promise<Mesa | null> {
+  async save(mesa: Mesa, manager: EntityManager): Promise<Mesa> {
+    return manager.getRepository(Mesa).save(mesa);
+  }
+
+  private conPedidoAbierto() {
+    return this.repository
+      .createQueryBuilder('mesa')
+      .leftJoinAndSelect('mesa.pedidos', 'pedido', 'pedido.estado = :estado', {
+        estado: EstadoPedido.ABIERTO,
+      })
+      .leftJoinAndSelect('pedido.pedidosProductos', 'item')
+      .leftJoinAndSelect('item.producto', 'producto');
+  }
+
+  async update(
+    id: number,
+    actualizarMesaDto: ActualizarMesaDto,
+  ): Promise<Mesa | null> {
     await this.repository.update(id, actualizarMesaDto);
     return this.findOne(id);
   }

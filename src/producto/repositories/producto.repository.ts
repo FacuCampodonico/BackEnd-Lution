@@ -14,23 +14,27 @@ export class ProductoRepository {
 
   async create(crearProductoDto: CrearProductoDto): Promise<Producto> {
     const nuevoProducto = this.repository.create(crearProductoDto);
-    return await this.repository.save(nuevoProducto);
+    const guardado = await this.repository.save(nuevoProducto);
+    return (await this.findOne(guardado.id))!;
   }
 
   async findAll(): Promise<Producto[]> {
     return await this.repository.find({
-      relations: { categoria: true },
+      relations: { categoria: true, recetas: true },
     });
   }
 
   async findOne(id: number): Promise<Producto | null> {
     return await this.repository.findOne({
       where: { id },
-      relations: { categoria: true },
+      relations: { categoria: true, recetas: true },
     });
   }
 
-  async update(id: number, actualizarProductoDto: ActualizarProductoDto): Promise<Producto | null> {
+  async update(
+    id: number,
+    actualizarProductoDto: ActualizarProductoDto,
+  ): Promise<Producto | null> {
     await this.repository.update(id, actualizarProductoDto);
     return this.findOne(id);
   }

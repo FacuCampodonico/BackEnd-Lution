@@ -1,4 +1,11 @@
 import {
+  pedidoResponse,
+  pedidoItemResponse,
+  type PedidoResponse,
+  type PedidoItemResponse,
+} from './dto/pedido-response.dto';
+import type { PagoRegistradoResponse } from '../pago/dto/pago-registrado-response.dto';
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -8,7 +15,6 @@ import { DataSource } from 'typeorm';
 import { PedidoRepository } from './pedido.repository';
 import { PedidoProductoRepository } from './pedido-producto.repository';
 import { ProductoService } from '../producto/services/producto.service';
-import { CrearPedidoDto } from './dto/crear-pedido.dto';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
@@ -17,7 +23,8 @@ import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { Mesa, EstadoMesa } from '../mesa/entities/mesa.entity';
 import { PedidoProducto } from './entities/pedido-producto.entity';
 import { Producto } from '../producto/entities/producto.entity';
-import { Pago } from '../pago/entities/pago.entity';
+import { PagoRepository } from '../pago/pago.repository';
+import { MesaRepository } from '../mesa/mesa.repository';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
 import { TipoPago } from '../pago/enums/tipo-pago.enum';
 
@@ -28,44 +35,30 @@ export class PedidoService {
     private readonly pedidoProductoRepository: PedidoProductoRepository,
     private readonly productoService: ProductoService,
     private readonly dataSource: DataSource,
+    private readonly pagoRepository: PagoRepository,
+    private readonly mesaRepository: MesaRepository,
   ) {}
 
-  async obtenerPedidoAbiertoPorMesa(mesaId: number) {
+  async obtenerPedidoAbiertoPorMesa(
+    mesaId: number,
+  ): Promise<PedidoResponse | null> {
     const pedido = await this.pedidoRepository.findPedidoAbiertoByMesa(mesaId);
 
     if (!pedido) {
       return null;
     }
 
-    const itemsFormateados = (pedido.pedidosProductos || []).map((item) => {
-      const precioUnitario = Number(item.producto?.precio || 0);
-      return {
-        id: item.id,
-        productoId: item.productoId,
-        productoNombre: item.producto?.nombre || '',
-        cantidad: item.cantidad,
-        precioUnitario,
-        subtotal: precioUnitario * item.cantidad,
-      };
-    });
-
-    const total = itemsFormateados.reduce(
-      (acc, item) => acc + item.subtotal,
-      0,
-    );
-
-    return {
-      id: pedido.id,
-      mesaId: pedido.mesaId,
-      empleadoId: pedido.empleadoId,
-      estado: pedido.estado,
-      fechaHoraInicio: pedido.fechaHoraInicio,
-      total,
-      items: itemsFormateados,
-    };
+    return pedidoResponse(pedido);
   }
 
-  async crearPedidoPorMesa(mesaId: number, dto: CrearPedidoMesaDto) {
+  obtenerPedidoPorId(id: number): Promise<PedidoResponse> {
+    return this.findById(id);
+  }
+
+  async crearPedidoPorMesa(
+    mesaId: number,
+    dto: CrearPedidoMesaDto,
+  ): Promise<PedidoResponse | null> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -128,35 +121,33 @@ export class PedidoService {
     }
   }
 
-
-  async registrarPago(pedidoId: number, dto: CrearPagoDto) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const pedido = await queryRunner.manager.findOne(Pedido, {
-        where: { id: pedidoId },
-        relations: {
-          pedidosProductos: {
-            producto: true,
-          },
-          mesa: true,
-        },
-      });
+  async registrarPago(
+    pedidoId: number,
+    dto: CrearPagoDto,
+  ): Promise<PagoRegistradoResponse> {
+    return this.dataSource.transaction(async (manager) => {
+      const pedido = await this.pedidoRepository.findParaPago(
+        pedidoId,
+        manager,
+      );
 
       if (!pedido) {
         throw new NotFoundException(`El pedido con ID ${pedidoId} no existe`);
       }
 
       if (pedido.estado === EstadoPedido.PAGADO) {
-        throw new ConflictException(`El pedido con ID ${pedidoId} ya fue pagado`);
+        throw new ConflictException(
+          `El pedido con ID ${pedidoId} ya fue pagado`,
+        );
       }
 
-      const totalCalculado = (pedido.pedidosProductos || []).reduce((acc, item) => {
-        const precio = Number(item.producto?.precio || 0);
-        return acc + precio * item.cantidad;
-      }, 0);
+      const totalCalculado = (pedido.pedidosProductos || []).reduce(
+        (acc, item) => {
+          const precio = Number(item.producto?.precio || 0);
+          return acc + precio * item.cantidad;
+        },
+        0,
+      );
 
       let vuelto = 0;
       if (dto.tipo === TipoPago.EFECTIVO) {
@@ -168,49 +159,103 @@ export class PedidoService {
         vuelto = dto.pagaCon - totalCalculado;
       }
 
-      const nuevoPago = queryRunner.manager.create(Pago, {
-        tipo: dto.tipo,
-        pagaCon: dto.pagaCon || null,
-        vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : null,
-        titular: dto.titular || null,
-        marca: dto.marca || null,
-        cuotas: dto.cuotas || null,
-        pedidoId: pedido.id,
-      }as unknown as Pago);
-      await queryRunner.manager.save(nuevoPago);
+      await this.pagoRepository.create(
+        {
+          tipo: dto.tipo,
+          pagaCon: dto.pagaCon || undefined,
+          vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : undefined,
+          titular: dto.titular || undefined,
+          marca: dto.marca || undefined,
+          cuotas: dto.cuotas || undefined,
+          pedido: { id: pedido.id },
+        },
+        manager,
+      );
 
       pedido.estado = EstadoPedido.PAGADO;
       pedido.total = totalCalculado;
       pedido.fechaHoraCierre = new Date();
-      await queryRunner.manager.save(pedido);
+      await this.pedidoRepository.save(pedido, manager);
 
       if (pedido.mesa) {
         pedido.mesa.estado = EstadoMesa.POR_PAGAR;
-        await queryRunner.manager.save(pedido.mesa);
+        await this.mesaRepository.save(pedido.mesa, manager);
       }
-
-      await queryRunner.commitTransaction();
 
       return {
         message: 'Pago registrado con éxito',
-        pedidoId: pedido.id,
+        pedidoId: String(pedido.id),
         total: totalCalculado,
         vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : 0,
       };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+    });
   }
 
-
-  findAll() {
-    return this.pedidoRepository.findAll();
+  async findAll(): Promise<PedidoResponse[]> {
+    return (await this.pedidoRepository.findAll()).map(pedidoResponse);
   }
 
-  async findById(id: number) {
+  async findById(id: number): Promise<PedidoResponse> {
+    return pedidoResponse(await this.findEntityById(id));
+  }
+
+  async update(
+    id: number,
+    actualizarPedidoDto: ActualizarPedidoDto,
+  ): Promise<PedidoResponse | null> {
+    await this.findEntityById(id);
+    const actualizado = await this.pedidoRepository.update(
+      id,
+      actualizarPedidoDto,
+    );
+    return actualizado ? pedidoResponse(actualizado) : null;
+  }
+
+  async delete(id: number) {
+    await this.findEntityById(id);
+    await this.pedidoRepository.remove(id);
+    return { message: 'Pedido eliminado correctamente' };
+  }
+
+  async findProductos(pedidoId: number): Promise<PedidoItemResponse[]> {
+    await this.findEntityById(pedidoId);
+    return (await this.pedidoProductoRepository.findByPedido(pedidoId)).map(
+      pedidoItemResponse,
+    );
+  }
+
+  async agregarProducto(
+    pedidoId: number,
+    dto: CrearPedidoProductoDto,
+  ): Promise<PedidoResponse> {
+    await this.findPedidoAbierto(pedidoId);
+    await this.productoService.findOne(dto.productoId);
+    await this.pedidoProductoRepository.create(pedidoId, dto);
+    return this.obtenerPedidoPorId(pedidoId);
+  }
+
+  async actualizarProducto(
+    pedidoId: number,
+    itemId: number,
+    dto: ActualizarPedidoProductoDto,
+  ): Promise<PedidoResponse> {
+    await this.findPedidoAbierto(pedidoId);
+    await this.findItem(pedidoId, itemId);
+    await this.pedidoProductoRepository.update(pedidoId, itemId, dto);
+    return this.obtenerPedidoPorId(pedidoId);
+  }
+
+  async eliminarProducto(
+    pedidoId: number,
+    itemId: number,
+  ): Promise<PedidoResponse> {
+    await this.findPedidoAbierto(pedidoId);
+    await this.findItem(pedidoId, itemId);
+    await this.pedidoProductoRepository.remove(pedidoId, itemId);
+    return this.obtenerPedidoPorId(pedidoId);
+  }
+
+  private async findEntityById(id: number): Promise<Pedido> {
     const pedido = await this.pedidoRepository.findOne(id);
     if (!pedido) {
       throw new NotFoundException(`pedido con ID ${id} no encontrada`);
@@ -218,45 +263,8 @@ export class PedidoService {
     return pedido;
   }
 
-  async update(id: number, actualizarPedidoDto: ActualizarPedidoDto) {
-    await this.findById(id);
-    return this.pedidoRepository.update(id, actualizarPedidoDto);
-  }
-
-  async delete(id: number) {
-    await this.findById(id);
-    return this.pedidoRepository.remove(id);
-  }
-
-  async findProductos(pedidoId: number) {
-    await this.findById(pedidoId);
-    return this.pedidoProductoRepository.findByPedido(pedidoId);
-  }
-
-  async agregarProducto(pedidoId: number, dto: CrearPedidoProductoDto) {
-    await this.findPedidoAbierto(pedidoId);
-    await this.productoService.findOne(dto.productoId);
-    return this.pedidoProductoRepository.create(pedidoId, dto);
-  }
-
-  async actualizarProducto(
-    pedidoId: number,
-    itemId: number,
-    dto: ActualizarPedidoProductoDto,
-  ) {
-    await this.findPedidoAbierto(pedidoId);
-    await this.findItem(pedidoId, itemId);
-    return this.pedidoProductoRepository.update(pedidoId, itemId, dto);
-  }
-
-  async eliminarProducto(pedidoId: number, itemId: number) {
-    await this.findPedidoAbierto(pedidoId);
-    await this.findItem(pedidoId, itemId);
-    return this.pedidoProductoRepository.remove(pedidoId, itemId);
-  }
-
   private async findPedidoAbierto(id: number) {
-    const pedido = await this.findById(id);
+    const pedido = await this.findEntityById(id);
     if (pedido.fechaHoraCierre) {
       throw new BadRequestException(
         `El pedido con ID ${id} está cerrado y no se puede modificar`,

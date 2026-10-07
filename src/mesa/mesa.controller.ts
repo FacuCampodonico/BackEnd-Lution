@@ -9,12 +9,14 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MesaService } from './mesa.service';
 import { CrearMesaDto } from './dto/crear-mesa.dto';
 import { ActualizarMesaDto } from './dto/actualizar-mesa.dto';
 import { PedidoService } from '../pedido/pedido.service';
 import { CrearPedidoMesaDto } from '../pedido/dto/crear-pedido-mesa.dto';
+import { JsonNullInterceptor } from '../common/interceptors/json-null.interceptor';
 
 @Controller('mesas')
 export class MesaController {
@@ -57,8 +59,8 @@ export class MesaController {
     return this.mesaService.remove(id);
   }
 
-
   @Get(':mesaId/pedido')
+  @UseInterceptors(JsonNullInterceptor)
   getPedidoAbierto(@Param('mesaId', ParseIntPipe) mesaId: number) {
     return this.pedidoService.obtenerPedidoAbiertoPorMesa(mesaId);
   }
