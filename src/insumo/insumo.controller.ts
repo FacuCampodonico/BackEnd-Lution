@@ -13,7 +13,6 @@ import {
 
 import { CrearInsumoDto } from './dto/crear-insumo.dto';
 import { InsumoService } from './insumo.service';
-import  { Insumo } from './entities/insumo.entity';
 import { ActualizarInsumoDto } from './dto/actualizar-insumo.dto';
 
 @Controller('insumos')
@@ -21,23 +20,23 @@ export class InsumoController {
   constructor(private readonly insumoService: InsumoService) {}
 
   @Get()
-  getAll(): Promise<Insumo[]> {
+  getAll() {
     return this.insumoService.findAll();
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  crear(@Body() datos: CrearInsumoDto): Promise<Insumo> {
+  crear(@Body() datos: CrearInsumoDto) {
     return this.insumoService.create(datos);
   }
 
   @Get(':id')
-  getById(@Param('id', ParseIntPipe) id: number): Promise<Insumo> {
+  getById(@Param('id', ParseIntPipe) id: number) {
     return this.insumoService.findById(id);
   }
 
   @Patch(':id')
-  async update(
+  update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ActualizarInsumoDto,
   ) {
@@ -45,13 +44,7 @@ export class InsumoController {
   }
 
   @Delete(':id')
-async delete(
-  @Param('id', ParseIntPipe) id: number,
-) {
-  await this.insumoService.delete(id);
-
-  return {
-    message: 'Insumo eliminado correctamente',
-  };
-}
+  delete(@Param('id', ParseIntPipe) id: number) {
+    return this.insumoService.delete(id);
+  }
 }
