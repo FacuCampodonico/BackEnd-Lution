@@ -7,7 +7,6 @@ import {
 import type { Response } from 'express';
 import { map, type Observable } from 'rxjs';
 
-/** Nest envía un cuerpo vacío para null; esta ruta requiere JSON null. */
 @Injectable()
 export class JsonNullInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {

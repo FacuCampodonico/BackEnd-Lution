@@ -102,8 +102,11 @@ export class PedidoService {
         );
       }
 
-      mesa.estado = EstadoMesa.ABIERTA;
-      await this.mesaRepository.save(mesa, manager);
+      await this.mesaRepository.actualizarEstado(
+        mesaId,
+        EstadoMesa.ABIERTA,
+        manager,
+      );
 
       const pedido = await this.pedidoRepository.findPedidoAbiertoByMesa(
         mesaId,
@@ -170,8 +173,11 @@ export class PedidoService {
       await this.pedidoRepository.save(pedido, manager);
 
       if (pedido.mesa) {
-        pedido.mesa.estado = EstadoMesa.POR_PAGAR;
-        await this.mesaRepository.save(pedido.mesa, manager);
+        await this.mesaRepository.actualizarEstado(
+          pedido.mesa.id,
+          EstadoMesa.POR_PAGAR,
+          manager,
+        );
       }
 
       return {

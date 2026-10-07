@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type EntityManager } from 'typeorm';
-import { Mesa } from './entities/mesa.entity';
+import { EstadoMesa, Mesa } from './entities/mesa.entity';
 import { EstadoPedido } from '../pedido/entities/pedido.entity';
 import { CrearMesaDto } from './dto/crear-mesa.dto';
 import { ActualizarMesaDto } from './dto/actualizar-mesa.dto';
@@ -28,8 +28,12 @@ export class MesaRepository {
       .getOne();
   }
 
-  async save(mesa: Mesa, manager: EntityManager): Promise<Mesa> {
-    return manager.getRepository(Mesa).save(mesa);
+  async actualizarEstado(
+    id: number,
+    estado: EstadoMesa,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager.getRepository(Mesa).update(id, { estado });
   }
 
   private conPedidoAbierto(manager?: EntityManager) {
