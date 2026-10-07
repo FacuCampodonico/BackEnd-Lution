@@ -13,7 +13,6 @@ import {
 
 import { CrearEmpleadoDto } from './dto/crear-empleado.dto';
 import { EmpleadoService } from './empleado.service';
-import  { Empleado } from './entities/empleado.entity';
 import { ActualizarEmpleadoDto } from './dto/actualizar-empleado.dto';
 
 @Controller('empleados')
@@ -21,23 +20,23 @@ export class EmpleadoController {
   constructor(private readonly empleadoService: EmpleadoService) {}
 
   @Get()
-  getAll(): Promise<Empleado[]> {
+  getAll() {
     return this.empleadoService.findAll();
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  crear(@Body() datos: CrearEmpleadoDto): Promise<Empleado> {
+  crear(@Body() datos: CrearEmpleadoDto) {
     return this.empleadoService.create(datos);
   }
 
   @Get(':id')
-  getById(@Param('id', ParseIntPipe) id: number): Promise<Empleado> {
+  getById(@Param('id', ParseIntPipe) id: number) {
     return this.empleadoService.findById(id);
   }
 
   @Patch(':id')
-  async update(
+  update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ActualizarEmpleadoDto,
   ) {
@@ -45,13 +44,7 @@ export class EmpleadoController {
   }
 
   @Delete(':id')
-async delete(
-  @Param('id', ParseIntPipe) id: number,
-) {
-  await this.empleadoService.delete(id);
-
-  return {
-    message: 'Empleado eliminado correctamente',
-  };
-}
+  delete(@Param('id', ParseIntPipe) id: number) {
+    return this.empleadoService.delete(id);
+  }
 }
