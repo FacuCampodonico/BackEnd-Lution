@@ -18,14 +18,20 @@ export class CategoriaRepository {
   }
 
   async findAll(): Promise<Categoria[]> {
-    return await this.repository.find();
+    return await this.repository.find({ relations: { productos: true } });
   }
 
   async findOne(id: number): Promise<Categoria | null> {
-    return await this.repository.findOneBy({ id });
+    return await this.repository.findOne({
+      where: { id },
+      relations: { productos: true },
+    });
   }
 
-  async update(id: number, actualizarCategoriaDto: ActualizarCategoriaDto): Promise<Categoria | null> {
+  async update(
+    id: number,
+    actualizarCategoriaDto: ActualizarCategoriaDto,
+  ): Promise<Categoria | null> {
     await this.repository.update(id, actualizarCategoriaDto);
     return this.findOne(id);
   }
