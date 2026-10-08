@@ -15,6 +15,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ]),],
   controllers: [EmpleadoController],
   providers: [EmpleadoService, EmpleadoRepository],
-  exports: [EmpleadoService],
+  exports: [EmpleadoService, EmpleadoRepository],
 })
 export class EmpleadoModule {}

@@ -4,7 +4,6 @@ import {
   IsArray,
   IsInt,
   IsNotEmpty,
-  IsOptional,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -21,9 +20,9 @@ export class ItemCarritoDto {
 }
 
 export class CrearPedidoMesaDto {
-  @IsOptional()
-  @IsInt()
-  empleadoId?: number;
+  @IsNotEmpty({ message: 'El empleado es obligatorio' })
+  @IsInt({ message: 'El ID del empleado debe ser un número entero' })
+  empleadoId: number;
 
   @IsArray()
   @ArrayNotEmpty()

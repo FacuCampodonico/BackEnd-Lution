@@ -12,6 +12,8 @@ export interface PedidoItemResponse {
 export interface PedidoResponse {
   id: string;
   mesaId: string;
+  empleadoId: string | null;
+  empleadoNombre: string | null;
   items: PedidoItemResponse[];
   total: number;
   estado: EstadoPedido;
@@ -39,6 +41,8 @@ export function pedidoResponse(pedido: Pedido): PedidoResponse {
   return {
     id: String(pedido.id),
     mesaId: String(pedido.mesaId),
+    empleadoId: pedido.empleadoId !== null ? String(pedido.empleadoId) : null,
+    empleadoNombre: pedido.empleado?.nombre ?? null,
     estado: pedido.estado,
     items,
     total,
