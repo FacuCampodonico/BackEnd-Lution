@@ -15,6 +15,7 @@ import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
+import { Niveles } from '../common/decorators/niveles.decorator';
 
 @Controller('pedidos')
 export class PedidoController {
@@ -58,6 +59,7 @@ export class PedidoController {
   }
 
   @Post(':pedidoId/items')
+  @Niveles('admin', 'mozo')
   @HttpCode(HttpStatus.CREATED)
   agregarProducto(
     @Param('pedidoId', ParseIntPipe) pedidoId: number,
@@ -67,6 +69,7 @@ export class PedidoController {
   }
 
   @Patch(':pedidoId/items/:itemId')
+  @Niveles('admin', 'mozo')
   actualizarProducto(
     @Param('pedidoId', ParseIntPipe) pedidoId: number,
     @Param('itemId', ParseIntPipe) itemId: number,
@@ -76,6 +79,7 @@ export class PedidoController {
   }
 
   @Delete(':pedidoId/items/:itemId')
+  @Niveles('admin', 'mozo')
   removeItem(
     @Param('pedidoId', ParseIntPipe) pedidoId: number,
     @Param('itemId', ParseIntPipe) itemId: number,

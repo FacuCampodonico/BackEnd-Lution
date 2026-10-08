@@ -17,6 +17,11 @@ import { ActualizarMesaDto } from './dto/actualizar-mesa.dto';
 import { PedidoService } from '../pedido/pedido.service';
 import { CrearPedidoMesaDto } from '../pedido/dto/crear-pedido-mesa.dto';
 import { JsonNullInterceptor } from '../common/interceptors/json-null.interceptor';
+import { Niveles } from '../common/decorators/niveles.decorator';
+import {
+  EmpleadoActual,
+  type EmpleadoAutenticado,
+} from '../common/decorators/empleado-actual.decorator';
 
 @Controller('mesas')
 export class MesaController {
@@ -32,16 +37,19 @@ export class MesaController {
   }
 
   @Post()
+  @Niveles('admin', 'mozo')
   create(@Body() crearMesaDto: CrearMesaDto) {
     return this.mesaService.create(crearMesaDto);
   }
 
   @Get()
+  @Niveles('admin', 'mozo')
   findAll() {
     return this.mesaService.findAll();
   }
 
   @Get(':id')
+  @Niveles('admin', 'mozo')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.mesaService.findOne(id);
   }
@@ -60,6 +68,7 @@ export class MesaController {
   }
 
   @Get(':mesaId/pedido')
+  @Niveles('admin', 'mozo')
   @UseInterceptors(JsonNullInterceptor)
   getPedidoAbierto(@Param('mesaId', ParseIntPipe) mesaId: number) {
     return this.pedidoService.obtenerPedidoAbiertoPorMesa(mesaId);
@@ -67,10 +76,15 @@ export class MesaController {
 
   @Post(':mesaId/pedido')
   @HttpCode(HttpStatus.CREATED)
+  @Niveles('admin', 'mozo')
   crearPedidoMesa(
     @Param('mesaId', ParseIntPipe) mesaId: number,
     @Body() dto: CrearPedidoMesaDto,
+    @EmpleadoActual() empleado: EmpleadoAutenticado,
   ) {
-    return this.pedidoService.crearPedidoPorMesa(mesaId, dto);
+    return this.pedidoService.crearPedidoPorMesa(mesaId, {
+      ...dto,
+      empleadoId: empleado.id,
+    });
   }
 }

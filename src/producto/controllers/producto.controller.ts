@@ -11,6 +11,7 @@ import {
 import { ProductoService } from '../services/producto.service';
 import { CrearProductoDto } from '../dto/crear-producto.dto';
 import { ActualizarProductoDto } from '../dto/actualizar-producto.dto';
+import { Niveles } from '../../common/decorators/niveles.decorator';
 
 @Controller('productos')
 export class ProductoController {
@@ -22,6 +23,7 @@ export class ProductoController {
   }
 
   @Get()
+  @Niveles('admin', 'mozo')
   findAll() {
     return this.productoService.findAll();
   }
