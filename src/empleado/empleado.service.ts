@@ -6,16 +6,17 @@ import {
 import { EmpleadoRepository } from './empleado.repository';
 import type { CrearEmpleadoDto } from './dto/crear-empleado.dto';
 import type { Empleado } from './entities/empleado.entity';
-import {
-  type EmpleadoResponse,
-} from './dto/empleado-response.dto';
+import { type EmpleadoResponse } from './dto/empleado-response.dto';
+import { hashearPassword } from '../common/utils/password';
 
 @Injectable()
 export class EmpleadoService {
   constructor(private readonly empleadoRepository: EmpleadoRepository) {}
 
   async findAll(): Promise<EmpleadoResponse[]> {
-    return (await this.empleadoRepository.findAll()).map(this.empleadoResponse);
+    return (await this.empleadoRepository.findAll()).map((empleado) =>
+      this.empleadoResponse(empleado),
+    );
   }
 
   async findById(id: number): Promise<EmpleadoResponse> {
@@ -45,7 +46,14 @@ export class EmpleadoService {
       throw new ConflictException(`Ya existe un empleado con DNI ${dto.dni}`);
     }
 
-    return this.empleadoResponse(await this.empleadoRepository.create(dto));
+    const empleado = await this.empleadoRepository.create({
+      nombre: dto.nombre,
+      dni: dto.dni,
+      idTipoRol: dto.idTipoRol,
+      passwordHash: await hashearPassword(dto.password),
+    });
+
+    return this.empleadoResponse(empleado);
   }
 
   async update(
@@ -71,18 +79,17 @@ export class EmpleadoService {
   }
 
   empleadoResponse(empleado: Empleado): EmpleadoResponse {
-  const rolNombre = empleado.tipoRol?.nombre ?? null;
-  const rol = rolNombre?.toLowerCase();
-  return {
-    id: String(empleado.id),
-    nombre: empleado.nombre,
-    apellido: '',
-    dni: empleado.dni,
-    idTipoRol: empleado.idTipoRol,
-    rolNombre,
-    rol: rol === 'mozo' || rol === 'admin' ? rol : null,
-    activo: null,
-  };
-}
-
+    const rolNombre = empleado.tipoRol?.nombre ?? null;
+    const rol = rolNombre?.toLowerCase();
+    return {
+      id: String(empleado.id),
+      nombre: empleado.nombre,
+      apellido: '',
+      dni: empleado.dni,
+      idTipoRol: empleado.idTipoRol,
+      rolNombre,
+      rol: rol === 'mozo' || rol === 'admin' ? rol : null,
+      activo: null,
+    };
+  }
 }

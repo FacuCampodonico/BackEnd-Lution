@@ -36,6 +36,15 @@ export class EmpleadoRepository {
     });
   }
 
+  async findByDniConPassword(dni: string): Promise<Empleado | null> {
+    return this.repository
+      .createQueryBuilder('empleado')
+      .addSelect('empleado.passwordHash')
+      .leftJoinAndSelect('empleado.tipoRol', 'tipoRol')
+      .where('empleado.dni = :dni', { dni })
+      .getOne();
+  }
+
   async create(empleado: Partial<Empleado>): Promise<Empleado> {
     const nuevoEmpleado = this.repository.create(empleado);
 

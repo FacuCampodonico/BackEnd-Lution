@@ -34,18 +34,22 @@ export class Empleado {
   })
   idTipoRol: number;
 
-  @ManyToOne(
-    () => EmpleadoTipoRol,
-    (tipoRol) => tipoRol.empleados,
-  )
+  @Column({
+    name: 'password_hash',
+    type: 'varchar',
+    length: 60,
+    nullable: true,
+    select: false,
+  })
+  passwordHash: string | null;
+
+  @ManyToOne(() => EmpleadoTipoRol, (tipoRol) => tipoRol.empleados)
   @JoinColumn({
     name: 'id_tipo_rol',
     referencedColumnName: 'id',
   })
   tipoRol: EmpleadoTipoRol;
 
-
   @OneToMany(() => Pedido, (pedido) => pedido.empleado)
   pedidos: Pedido[];
 }
-
