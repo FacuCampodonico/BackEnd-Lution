@@ -21,14 +21,14 @@ export class PedidoRepository {
 
   async findAll(): Promise<Pedido[]> {
     return await this.repository.find({
-      relations: { pedidosProductos: { producto: true } },
+      relations: { pedidosProductos: { producto: true }, empleado: true },
     });
   }
 
   async findOne(id: number): Promise<Pedido | null> {
     return await this.repository.findOne({
       where: { id },
-      relations: { pedidosProductos: { producto: true } },
+      relations: { pedidosProductos: { producto: true }, empleado: true },
     });
   }
 
@@ -57,8 +57,11 @@ export class PedidoRepository {
     return this.findOne(id);
   }
 
-  async remove(id: number): Promise<void> {
-    await this.repository.delete(id);
+  async remove(id: number, manager?: EntityManager): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(Pedido)
+      : this.repository;
+    await repository.delete(id);
   }
 
   async findPedidoAbiertoByMesa(
@@ -77,6 +80,7 @@ export class PedidoRepository {
         pedidosProductos: {
           producto: true,
         },
+        empleado: true,
       },
     });
   }

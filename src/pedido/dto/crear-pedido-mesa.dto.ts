@@ -21,8 +21,9 @@ export class ItemCarritoDto {
 }
 
 export class CrearPedidoMesaDto {
+  // Solo lo tiene en cuenta un admin; para el resto se toma del token.
   @IsOptional()
-  @IsInt()
+  @IsInt({ message: 'El ID del empleado debe ser un número entero' })
   empleadoId?: number;
 
   @IsArray()

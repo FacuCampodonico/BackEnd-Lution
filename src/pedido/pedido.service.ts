@@ -24,6 +24,7 @@ import { EstadoMesa } from '../mesa/entities/mesa.entity';
 import { ProductoRepository } from '../producto/repositories/producto.repository';
 import { PagoRepository } from '../pago/pago.repository';
 import { MesaRepository } from '../mesa/mesa.repository';
+import { EmpleadoRepository } from '../empleado/empleado.repository';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
 import { TipoPago } from '../pago/enums/tipo-pago.enum';
 
@@ -37,6 +38,7 @@ export class PedidoService {
     private readonly pagoRepository: PagoRepository,
     private readonly mesaRepository: MesaRepository,
     private readonly productoRepository: ProductoRepository,
+    private readonly empleadoRepository: EmpleadoRepository,
   ) {}
 
   async obtenerPedidoAbiertoPorMesa(
@@ -57,12 +59,19 @@ export class PedidoService {
 
   async crearPedidoPorMesa(
     mesaId: number,
-    dto: CrearPedidoMesaDto,
+    dto: CrearPedidoMesaDto & { empleadoId: number },
   ): Promise<PedidoResponse | null> {
     return this.dataSource.transaction(async (manager) => {
       const mesa = await this.mesaRepository.findOne(mesaId, manager);
       if (!mesa) {
         throw new NotFoundException(`La mesa con ID ${mesaId} no existe`);
+      }
+
+      const empleado = await this.empleadoRepository.findById(dto.empleadoId);
+      if (!empleado) {
+        throw new NotFoundException(
+          `El empleado con ID ${dto.empleadoId} no existe`,
+        );
       }
 
       const pedidoExistente =
@@ -77,7 +86,7 @@ export class PedidoService {
       const pedidoGuardado = await this.pedidoRepository.create(
         {
           mesaId,
-          empleadoId: dto.empleadoId || null,
+          empleadoId: dto.empleadoId,
           estado: EstadoPedido.ABIERTO,
           fechaHoraInicio: new Date(),
         },
@@ -210,8 +219,23 @@ export class PedidoService {
   }
 
   async delete(id: number) {
-    await this.findEntityById(id);
-    await this.pedidoRepository.remove(id);
+    const pedido = await this.findEntityById(id);
+
+    if (pedido.estado !== EstadoPedido.ABIERTO) {
+      throw new ConflictException(
+        `El pedido con ID ${id} ya fue pagado y no se puede cancelar`,
+      );
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await this.mesaRepository.actualizarEstado(
+        pedido.mesaId,
+        EstadoMesa.LIBRE,
+        manager,
+      );
+      await this.pedidoRepository.remove(id, manager);
+    });
+
     return { message: 'Pedido eliminado correctamente' };
   }
 

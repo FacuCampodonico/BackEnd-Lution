@@ -82,9 +82,14 @@ export class MesaController {
     @Body() dto: CrearPedidoMesaDto,
     @EmpleadoActual() empleado: EmpleadoAutenticado,
   ) {
+    // El admin puede cargar el pedido a nombre de otro empleado; el resto, a su nombre.
+    const empleadoId =
+      empleado.nivel === 'admin' && dto.empleadoId
+        ? dto.empleadoId
+        : empleado.id;
     return this.pedidoService.crearPedidoPorMesa(mesaId, {
       ...dto,
-      empleadoId: empleado.id,
+      empleadoId,
     });
   }
 }

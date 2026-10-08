@@ -9,6 +9,7 @@ import { PedidoProducto } from './entities/pedido-producto.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductoModule } from '../producto/producto.module';
 import { PagoModule } from '../pago/pago.module';
+import { EmpleadoModule } from '../empleado/empleado.module';
 import { Mesa } from '../mesa/entities/mesa.entity';
 import { MesaRepository } from '../mesa/mesa.repository';
 
@@ -17,6 +18,7 @@ import { MesaRepository } from '../mesa/mesa.repository';
     TypeOrmModule.forFeature([Pedido, PedidoProducto, Mesa]),
     ProductoModule,
     PagoModule,
+    EmpleadoModule,
   ],
   controllers: [PedidoController],
   providers: [
