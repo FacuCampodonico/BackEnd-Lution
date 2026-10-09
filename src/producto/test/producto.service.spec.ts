@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProductoService } from '../services/producto.service';
 import { ProductoRepository } from '../repositories/producto.repository';
 import { CategoriaRepository } from '../../categoria/categoria.repository';
-import { CrearProductoDto } from '../dto/crear-producto.dto';
 
 describe('ProductoService', () => {
   let service: ProductoService;

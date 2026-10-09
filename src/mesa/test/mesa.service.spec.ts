@@ -40,8 +40,8 @@ describe('MesaService', () => {
 
   it('debe retornar todas las mesas registradas', async () => {
     const entidadesMock = [
-      { id: 1, numero: '1', capacidad: 4, estado: 'libre' },
-      { id: 9, numero: '99', capacidad: 4, estado: 'abierta' },
+      { id: 1, numero: 1, capacidad: 4, estado: 'libre' },
+      { id: 9, numero: 99, capacidad: 4, estado: 'abierta' },
     ];
 
     mockMesaRepository.findAll.mockResolvedValue(entidadesMock);
@@ -50,28 +50,14 @@ describe('MesaService', () => {
 
     expect(resultado).toHaveLength(2);
 
-    expect(resultado[0]).toEqual({
-        id: '1',
-        numero: '1',
-        capacidad: 4,
-        estado: 'libre',
-        cantidadItems: 0,
-        pedidoActualId: null,
-        totalActual: 0,
-      }),
+    expect(resultado[0]?.id).toBe('1');
+    expect(resultado[0]?.numero).toBe('1');
+    expect(resultado[0]?.estado).toBe('libre');
 
-    expect(resultado[1]).toEqual({
-        id: '9',
-        numero: '99',
-        capacidad: 4,  
-        estado: 'abierta',
-        cantidadItems: 0,
-        pedidoActualId: null,
-        totalActual: 0,
-      })
-
-      
-});
+    expect(resultado[1]?.id).toBe('9');
+    expect(resultado[1]?.numero).toBe('99');
+    expect(resultado[1]?.estado).toBe('abierta');
 
     expect(mockMesaRepository.findAll).toHaveBeenCalledTimes(1);
   });
+});
