@@ -146,4 +146,32 @@ describe('PedidoService.registrarPago', () => {
       manager,
     );
   });
+
+  it('conserva los datos de tarjeta sin exigir efectivo ni guardar vuelto', async () => {
+    const resultado = await service.registrarPago(1, {
+      tipo: TipoPago.TARJETA,
+      titular: 'Ana',
+      marca: 'Visa',
+      cuotas: 3,
+    });
+
+    expect(resultado).toEqual({
+      message: 'Pago registrado con éxito',
+      pedidoId: '1',
+      total: 20000,
+      vuelto: 0,
+    });
+    expect(mockPagoService.create).toHaveBeenCalledWith(
+      {
+        tipo: TipoPago.TARJETA,
+        pagaCon: undefined,
+        vuelto: undefined,
+        titular: 'Ana',
+        marca: 'Visa',
+        cuotas: 3,
+        pedido: { id: 1 },
+      },
+      manager,
+    );
+  });
 });
