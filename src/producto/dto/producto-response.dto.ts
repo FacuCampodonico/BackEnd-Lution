@@ -8,6 +8,7 @@ export interface ProductoResponse {
   categoriaId: string;
   categoriaNombre: string;
   insumoIds: string[];
+  recetas: { insumoId: string; cantidad: number }[];
 }
 
 export function productoResponse(producto: Producto): ProductoResponse {
@@ -21,5 +22,9 @@ export function productoResponse(producto: Producto): ProductoResponse {
     insumoIds: (producto.recetas ?? []).map((receta) =>
       String(receta.insumoId),
     ),
+    recetas: (producto.recetas ?? []).map((receta) => ({
+      insumoId: String(receta.insumoId),
+      cantidad: Number(receta.cantidad),
+    })),
   };
 }

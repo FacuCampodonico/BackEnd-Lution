@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, type EntityManager } from 'typeorm';
+import { In, Repository, type EntityManager } from 'typeorm';
 import { Producto } from '../entities/producto.entity';
 import { CrearProductoDto } from '../dto/crear-producto.dto';
 import { ActualizarProductoDto } from '../dto/actualizar-producto.dto';
+import { Insumo } from '../../insumo/entities/insumo.entity';
+import { Receta } from '../entities/receta.entity';
 
 @Injectable()
 export class ProductoRepository {
@@ -13,9 +15,38 @@ export class ProductoRepository {
   ) {}
 
   async create(crearProductoDto: CrearProductoDto): Promise<Producto> {
-    const nuevoProducto = this.repository.create(crearProductoDto);
-    const guardado = await this.repository.save(nuevoProducto);
-    return (await this.findOne(guardado.id))!;
+    const { recetas = [], ...datosProducto } = crearProductoDto;
+
+    return this.repository.manager.transaction(async (manager) => {
+      if (recetas.length) {
+        const ids = recetas.map((receta) => receta.insumoId);
+        const insumos = await manager
+          .getRepository(Insumo)
+          .findBy({ id: In(ids) });
+        const existentes = new Set(insumos.map((insumo) => insumo.id));
+        const faltantes = ids.filter((id) => !existentes.has(id));
+        if (faltantes.length) {
+          throw new BadRequestException(
+            `No existen los insumos: ${faltantes.join(', ')}`,
+          );
+        }
+      }
+
+      const productos = manager.getRepository(Producto);
+      const guardado = await productos.save(productos.create(datosProducto));
+
+      if (recetas.length) {
+        await manager.getRepository(Receta).save(
+          recetas.map((receta) => ({
+            productoId: guardado.id,
+            insumoId: receta.insumoId,
+            cantidad: receta.cantidad,
+          })),
+        );
+      }
+
+      return (await this.findOne(guardado.id, manager))!;
+    });
   }
 
   async findAll(): Promise<Producto[]> {

@@ -1,4 +1,17 @@
-import { IsInt, IsNotEmpty, IsNumber, IsString, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayUnique,
+  IsArray,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MaxLength,
+  Min,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
+import { CrearRecetaDto } from './crear-receta.dto';
 
 export class CrearProductoDto {
   @IsString()
@@ -18,5 +31,15 @@ export class CrearProductoDto {
 
   @IsInt({ message: 'El ID de la categoría debe ser un número entero' })
   @IsNotEmpty({ message: 'La categoría es obligatoria' })
+  @Min(1)
   idCategoria: number;
+
+  @ValidateIf((_producto, recetas) => recetas !== undefined)
+  @IsArray()
+  @ArrayUnique((receta: CrearRecetaDto) => receta?.insumoId, {
+    message: 'Cada insumo debe aparecer una sola vez en la receta',
+  })
+  @ValidateNested({ each: true })
+  @Type(() => CrearRecetaDto)
+  recetas?: CrearRecetaDto[];
 }

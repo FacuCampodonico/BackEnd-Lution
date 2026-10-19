@@ -1,7 +1,6 @@
-import { Insumo } from "src/insumo/entities/insumo.entity";
-import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryColumn } from "typeorm";
-import { Producto } from "./producto.entity";
-
+import { Insumo } from 'src/insumo/entities/insumo.entity';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Producto } from './producto.entity';
 
 @Entity('receta')
 export class Receta {
@@ -15,14 +14,18 @@ export class Receta {
     name: 'insumo_id',
     type: 'int',
   })
-  insumoId: number;  
+  insumoId: number;
 
   @Column({
-    type: 'int',
+    type: 'decimal',
+    precision: 10,
+    scale: 3,
   })
   cantidad: number;
 
-  @ManyToOne(() => Producto, (producto) => producto.recetas)
+  @ManyToOne(() => Producto, (producto) => producto.recetas, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'producto_id' })
   producto: Producto;
 
