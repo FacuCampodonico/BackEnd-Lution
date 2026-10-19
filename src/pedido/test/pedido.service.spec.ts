@@ -1,4 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { PedidoService } from '../pedido.service';
 import { PedidoRepository } from '../pedido.repository';
@@ -173,5 +178,54 @@ describe('PedidoService.registrarPago', () => {
       },
       manager,
     );
+  });
+
+  it('rechaza efectivo insuficiente antes de crear el pago o cerrar el pedido', async () => {
+    await expect(
+      service.registrarPago(1, { tipo: TipoPago.EFECTIVO, pagaCon: 10000 }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockPagoService.create).not.toHaveBeenCalled();
+    expect(mockPedidoRepository.save).not.toHaveBeenCalled();
+    expect(mockMesaRepository.actualizarEstado).not.toHaveBeenCalled();
+    expect(pedido.estado).toBe(EstadoPedido.ABIERTO);
+  });
+
+  it('rechaza un pedido inexistente antes de crear el pago', async () => {
+    mockPedidoRepository.findParaPago.mockResolvedValue(null);
+
+    await expect(
+      service.registrarPago(1, { tipo: TipoPago.TARJETA }),
+    ).rejects.toThrow(NotFoundException);
+
+    expect(mockPagoService.create).not.toHaveBeenCalled();
+    expect(mockPedidoRepository.save).not.toHaveBeenCalled();
+    expect(mockMesaRepository.actualizarEstado).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un pedido pagado sin generar otro pago', async () => {
+    pedido.estado = EstadoPedido.PAGADO;
+
+    await expect(
+      service.registrarPago(1, { tipo: TipoPago.TARJETA }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(mockPagoService.create).not.toHaveBeenCalled();
+    expect(mockPedidoRepository.save).not.toHaveBeenCalled();
+    expect(mockMesaRepository.actualizarEstado).not.toHaveBeenCalled();
+  });
+
+  it('no cierra el pedido ni actualiza la mesa si falla PagoService.create', async () => {
+    const error = new Error('Falló la creación del pago');
+    mockPagoService.create.mockRejectedValue(error);
+
+    await expect(
+      service.registrarPago(1, { tipo: TipoPago.TARJETA }),
+    ).rejects.toBe(error);
+
+    expect(mockPedidoRepository.save).not.toHaveBeenCalled();
+    expect(mockMesaRepository.actualizarEstado).not.toHaveBeenCalled();
+    expect(pedido.estado).toBe(EstadoPedido.ABIERTO);
+    expect(pedido.fechaHoraCierre).toBeNull();
   });
 });
