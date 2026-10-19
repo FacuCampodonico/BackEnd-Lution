@@ -27,6 +27,6 @@ import { MesaRepository } from '../mesa/mesa.repository';
     PedidoProductoRepository,
     MesaRepository,
   ],
-  exports: [PedidoService],
+  exports: [PedidoService, PedidoRepository],
 })
 export class PedidoModule {}

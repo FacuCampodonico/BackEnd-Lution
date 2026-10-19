@@ -22,7 +22,7 @@ import { CrearPedidoMesaDto } from './dto/crear-pedido-mesa.dto';
 import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { EstadoMesa } from '../mesa/entities/mesa.entity';
 import { ProductoRepository } from '../producto/repositories/producto.repository';
-import { PagoRepository } from '../pago/pago.repository';
+import { PagoService } from '../pago/pago.service';
 import { MesaRepository } from '../mesa/mesa.repository';
 import { EmpleadoRepository } from '../empleado/empleado.repository';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
@@ -35,7 +35,7 @@ export class PedidoService {
     private readonly pedidoProductoRepository: PedidoProductoRepository,
     private readonly productoService: ProductoService,
     private readonly dataSource: DataSource,
-    private readonly pagoRepository: PagoRepository,
+    private readonly pagoService: PagoService,
     private readonly mesaRepository: MesaRepository,
     private readonly productoRepository: ProductoRepository,
     private readonly empleadoRepository: EmpleadoRepository,
@@ -163,7 +163,7 @@ export class PedidoService {
         vuelto = dto.pagaCon - totalCalculado;
       }
 
-      await this.pagoRepository.create(
+      await this.pagoService.create(
         {
           tipo: dto.tipo,
           pagaCon: dto.pagaCon || undefined,

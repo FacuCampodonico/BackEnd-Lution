@@ -1,33 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PagoRepository } from './pago.repository';
-import { CrearPagoDto } from './dto/crear-pago.dto';
 import { ActualizarPagoDto } from './dto/actualiza-pago.dto';
-import { TipoPago } from './enums/tipo-pago.enum'; 
-import { PedidoRepository } from '../pedido/pedido.repository'; 
+import type { DeepPartial, EntityManager } from 'typeorm';
+import { Pago } from './entities/pago.entity';
 
 @Injectable()
 export class PagoService {
-  constructor(
-    private readonly pagoRepository: PagoRepository,
-    private readonly pedidoRepository: PedidoRepository,
-  ) {}
+  constructor(private readonly pagoRepository: PagoRepository) {}
 
-  async create(crearPagoDto: CrearPagoDto) {
-    const pedidoId = (crearPagoDto as any).pedidoId;
-    const pedido = await this.pedidoRepository.findOne(pedidoId);
-
-    if (!pedido) {
-      throw new NotFoundException(`Pedido con ID ${pedidoId} no encontrado`);
-    }
-
-    const totalPedido = pedido.total ?? 0;
-    const pagaCon = crearPagoDto.pagaCon ?? 0;
-
-    if (crearPagoDto.tipo === TipoPago.EFECTIVO && pagaCon < totalPedido) {
-      throw new BadRequestException('El monto abonado es insuficiente para cubrir el total');
-    }
-
-    return this.pagoRepository.create(crearPagoDto);
+  create(datos: DeepPartial<Pago>, manager?: EntityManager) {
+    return this.pagoRepository.create(datos, manager);
   }
 
   findAll() {
