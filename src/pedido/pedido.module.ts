@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductoModule } from '../producto/producto.module';
 import { PagoModule } from '../pago/pago.module';
 import { EmpleadoModule } from '../empleado/empleado.module';
+import { InsumoModule } from '../insumo/insumo.module';
 import { Mesa } from '../mesa/entities/mesa.entity';
 import { MesaRepository } from '../mesa/mesa.repository';
 
@@ -19,6 +20,7 @@ import { MesaRepository } from '../mesa/mesa.repository';
     ProductoModule,
     PagoModule,
     EmpleadoModule,
+    InsumoModule,
   ],
   controllers: [PedidoController],
   providers: [

@@ -11,7 +11,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, type EntityManager } from 'typeorm';
 import { PedidoRepository } from './pedido.repository';
 import { PedidoProductoRepository } from './pedido-producto.repository';
 import { ProductoService } from '../producto/services/producto.service';
@@ -27,6 +27,12 @@ import { MesaRepository } from '../mesa/mesa.repository';
 import { EmpleadoRepository } from '../empleado/empleado.repository';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
 import { TipoPago } from '../pago/enums/tipo-pago.enum';
+import type { Producto } from '../producto/entities/producto.entity';
+import {
+  StockService,
+  calcularConsumo,
+  type ConsumoStock,
+} from '../insumo/stock.service';
 
 @Injectable()
 export class PedidoService {
@@ -39,6 +45,7 @@ export class PedidoService {
     private readonly mesaRepository: MesaRepository,
     private readonly productoRepository: ProductoRepository,
     private readonly empleadoRepository: EmpleadoRepository,
+    private readonly stockService: StockService,
   ) {}
 
   async obtenerPedidoAbiertoPorMesa(
@@ -60,6 +67,7 @@ export class PedidoService {
   async crearPedidoPorMesa(
     mesaId: number,
     dto: CrearPedidoMesaDto & { empleadoId: number },
+    permitirSinStock = false,
   ): Promise<PedidoResponse | null> {
     return this.dataSource.transaction(async (manager) => {
       const mesa = await this.mesaRepository.findOne(mesaId, manager);
@@ -93,6 +101,7 @@ export class PedidoService {
         manager,
       );
 
+      const consumidos: { producto: Producto; cantidad: number }[] = [];
       for (const itemDto of dto.items) {
         const producto = await this.productoRepository.findOne(
           itemDto.productoId,
@@ -109,7 +118,14 @@ export class PedidoService {
           itemDto,
           manager,
         );
+        consumidos.push({ producto, cantidad: itemDto.cantidad });
       }
+
+      await this.stockService.ajustar(
+        calcularConsumo(consumidos),
+        manager,
+        permitirSinStock,
+      );
 
       await this.mesaRepository.actualizarEstado(
         mesaId,
@@ -184,7 +200,7 @@ export class PedidoService {
       if (pedido.mesa) {
         await this.mesaRepository.actualizarEstado(
           pedido.mesa.id,
-          EstadoMesa.POR_PAGAR,
+          EstadoMesa.LIBRE,
           manager,
         );
       }
@@ -228,6 +244,10 @@ export class PedidoService {
     }
 
     await this.dataSource.transaction(async (manager) => {
+      await this.stockService.ajustar(
+        await this.consumoDe(pedido.pedidosProductos ?? [], manager, -1),
+        manager,
+      );
       await this.mesaRepository.actualizarEstado(
         pedido.mesaId,
         EstadoMesa.LIBRE,
@@ -249,10 +269,18 @@ export class PedidoService {
   async agregarProducto(
     pedidoId: number,
     dto: CrearPedidoProductoDto,
+    permitirSinStock = false,
   ): Promise<PedidoResponse> {
     await this.findPedidoAbierto(pedidoId);
     await this.productoService.findOne(dto.productoId);
-    await this.pedidoProductoRepository.create(pedidoId, dto);
+    await this.dataSource.transaction(async (manager) => {
+      await this.pedidoProductoRepository.create(pedidoId, dto, manager);
+      await this.stockService.ajustar(
+        await this.consumoDe([dto], manager),
+        manager,
+        permitirSinStock,
+      );
+    });
     return this.obtenerPedidoPorId(pedidoId);
   }
 
@@ -260,10 +288,30 @@ export class PedidoService {
     pedidoId: number,
     itemId: number,
     dto: ActualizarPedidoProductoDto,
+    permitirSinStock = false,
   ): Promise<PedidoResponse> {
     await this.findPedidoAbierto(pedidoId);
-    await this.findItem(pedidoId, itemId);
-    await this.pedidoProductoRepository.update(pedidoId, itemId, dto);
+    await this.dataSource.transaction(async (manager) => {
+      const item = await this.findItem(pedidoId, itemId, manager);
+      await this.pedidoProductoRepository.update(
+        pedidoId,
+        itemId,
+        dto,
+        manager,
+      );
+      if (dto.cantidad !== undefined && dto.cantidad !== item.cantidad) {
+        // Solo se mueve la diferencia: positiva descuenta, negativa devuelve.
+        const diferencia = dto.cantidad - item.cantidad;
+        await this.stockService.ajustar(
+          await this.consumoDe(
+            [{ productoId: item.productoId, cantidad: diferencia }],
+            manager,
+          ),
+          manager,
+          permitirSinStock,
+        );
+      }
+    });
     return this.obtenerPedidoPorId(pedidoId);
   }
 
@@ -272,9 +320,32 @@ export class PedidoService {
     itemId: number,
   ): Promise<PedidoResponse> {
     await this.findPedidoAbierto(pedidoId);
-    await this.findItem(pedidoId, itemId);
-    await this.pedidoProductoRepository.remove(pedidoId, itemId);
+    await this.dataSource.transaction(async (manager) => {
+      const item = await this.findItem(pedidoId, itemId, manager);
+      await this.pedidoProductoRepository.remove(pedidoId, itemId, manager);
+      await this.stockService.ajustar(
+        await this.consumoDe([item], manager, -1),
+        manager,
+      );
+    });
     return this.obtenerPedidoPorId(pedidoId);
+  }
+
+  /** Consumo de stock de los ítems según la receta actual de cada producto. */
+  private async consumoDe(
+    items: { productoId: number; cantidad: number }[],
+    manager: EntityManager,
+    signo: 1 | -1 = 1,
+  ): Promise<ConsumoStock> {
+    const conProducto: { producto: Producto; cantidad: number }[] = [];
+    for (const item of items) {
+      const producto = await this.productoRepository.findOne(
+        item.productoId,
+        manager,
+      );
+      if (producto) conProducto.push({ producto, cantidad: item.cantidad });
+    }
+    return calcularConsumo(conProducto, signo);
   }
 
   private async findEntityById(id: number): Promise<Pedido> {
@@ -295,8 +366,16 @@ export class PedidoService {
     return pedido;
   }
 
-  private async findItem(pedidoId: number, itemId: number) {
-    const item = await this.pedidoProductoRepository.findOne(pedidoId, itemId);
+  private async findItem(
+    pedidoId: number,
+    itemId: number,
+    manager?: EntityManager,
+  ) {
+    const item = await this.pedidoProductoRepository.findOne(
+      pedidoId,
+      itemId,
+      manager,
+    );
     if (!item) {
       throw new NotFoundException(
         `Item con ID ${itemId} no encontrado en el pedido ${pedidoId}`,

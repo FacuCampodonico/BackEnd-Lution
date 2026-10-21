@@ -125,6 +125,33 @@ necesita otro GET desde el frontend.
 El total de los pedidos abiertos se calcula con los precios actuales de sus
 productos. Para pedidos pagados se usa el total guardado al cobrar.
 
+## Stock
+
+Los pedidos mueven el stock de los insumos según la receta de cada producto
+(`cantidad de la receta × cantidad pedida`), en la misma transacción que el
+pedido:
+
+- `POST /mesas/:id/pedido` y `POST /pedidos/:id/items` descuentan.
+- `PATCH /pedidos/:id/items/:itemId` descuenta o devuelve la diferencia de cantidad.
+- `DELETE /pedidos/:id/items/:itemId` y `DELETE /pedidos/:id` devuelven.
+- Cobrar (que también libera la mesa) no mueve stock.
+
+Si a algún insumo no le alcanza, las rutas que descuentan responden 409:
+
+```json
+{
+  "statusCode": 409,
+  "codigo": "STOCK_INSUFICIENTE",
+  "message": "Stock insuficiente de Queso provolone",
+  "faltantes": [
+    { "insumoId": "3", "nombre": "Queso provolone", "unidad": "gramos", "disponible": 100, "necesario": 150 }
+  ]
+}
+```
+
+Para cargar el pedido igual, se repite el mismo request con
+`?permitirSinStock=true` y el stock queda en negativo.
+
 ## Cobro
 
 `POST /pedidos/:id/pago` recibe el DTO de pago existente y devuelve:
@@ -138,9 +165,9 @@ productos. Para pedidos pagados se usa el total guardado al cobrar.
 }
 ```
 
-El pedido queda pagado y la mesa queda en `por_pagar`. Liberar la mesa sigue
-siendo una operación aparte: `POST /mesas/:id/cerrar`. Si falla ese cierre, se
-puede reintentar sin cobrar de nuevo. El CRUD de pagos aislados en `/pagos` no es
+El pedido queda pagado y la mesa vuelve a `libre` en la misma transacción: no
+hace falta un paso de cierre aparte. `POST /mesas/:id/cerrar` queda solo para
+liberar mesas que hayan quedado en `por_pagar` con el flujo anterior. El CRUD de pagos aislados en `/pagos` no es
 el endpoint para cobrar pedidos y conserva su contrato anterior.
 
 ## Verificación

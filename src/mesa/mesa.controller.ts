@@ -10,6 +10,8 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  ParseBoolPipe,
+  Query,
 } from '@nestjs/common';
 import { MesaService } from './mesa.service';
 import { CrearMesaDto } from './dto/crear-mesa.dto';
@@ -81,15 +83,18 @@ export class MesaController {
     @Param('mesaId', ParseIntPipe) mesaId: number,
     @Body() dto: CrearPedidoMesaDto,
     @EmpleadoActual() empleado: EmpleadoAutenticado,
+    @Query('permitirSinStock', new ParseBoolPipe({ optional: true }))
+    permitirSinStock?: boolean,
   ) {
     // El admin puede cargar el pedido a nombre de otro empleado; el resto, a su nombre.
     const empleadoId =
       empleado.nivel === 'admin' && dto.empleadoId
         ? dto.empleadoId
         : empleado.id;
-    return this.pedidoService.crearPedidoPorMesa(mesaId, {
-      ...dto,
-      empleadoId,
-    });
+    return this.pedidoService.crearPedidoPorMesa(
+      mesaId,
+      { ...dto, empleadoId },
+      permitirSinStock,
+    );
   }
 }

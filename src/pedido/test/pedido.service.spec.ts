@@ -20,6 +20,7 @@ import { Producto } from '../../producto/entities/producto.entity';
 import { EmpleadoRepository } from '../../empleado/empleado.repository';
 import { MesaRepository } from '../../mesa/mesa.repository';
 import { Mesa, EstadoMesa } from '../../mesa/entities/mesa.entity';
+import { StockService } from '../../insumo/stock.service';
 
 describe('PedidoService.registrarPago', () => {
   let service: PedidoService;
@@ -93,6 +94,7 @@ describe('PedidoService.registrarPago', () => {
           ProductoService,
           ProductoRepository,
           EmpleadoRepository,
+          StockService,
         ].map((provide) => ({ provide, useValue: {} })),
       ],
     }).compile();
@@ -101,7 +103,7 @@ describe('PedidoService.registrarPago', () => {
 
   afterEach(async () => module.close());
 
-  it('recalcula el total de los productos, delega el pago y cierra el pedido usando el mismo manager', async () => {
+  it('recalcula el total de los productos, delega el pago, cierra el pedido y libera la mesa usando el mismo manager', async () => {
     const resultado = await service.registrarPago(1, {
       tipo: TipoPago.EFECTIVO,
       pagaCon: 25000,
@@ -134,7 +136,7 @@ describe('PedidoService.registrarPago', () => {
     expect(mockPedidoRepository.save).toHaveBeenCalledWith(pedido, manager);
     expect(mockMesaRepository.actualizarEstado).toHaveBeenCalledWith(
       2,
-      EstadoMesa.POR_PAGAR,
+      EstadoMesa.LIBRE,
       manager,
     );
   });

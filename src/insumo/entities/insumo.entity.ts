@@ -20,7 +20,7 @@ export class Insumo {
     name: 'stock_disponible',
     type: 'decimal',
     precision: 10,
-    scale: 2,
+    scale: 3,
     default: 0,
   })
   stockDisponible: number;

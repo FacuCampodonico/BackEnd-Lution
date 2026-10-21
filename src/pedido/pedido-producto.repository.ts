@@ -33,8 +33,12 @@ export class PedidoProductoRepository {
     });
   }
 
-  async findOne(pedidoId: number, id: number): Promise<PedidoProducto | null> {
-    return await this.repository.findOne({
+  async findOne(
+    pedidoId: number,
+    id: number,
+    manager?: EntityManager,
+  ): Promise<PedidoProducto | null> {
+    return await this.repositorio(manager).findOne({
       where: { id, pedidoId },
       relations: {
         producto: true,
@@ -46,12 +50,21 @@ export class PedidoProductoRepository {
     pedidoId: number,
     id: number,
     actualizarDto: ActualizarPedidoProductoDto,
+    manager?: EntityManager,
   ): Promise<PedidoProducto | null> {
-    await this.repository.update({ id, pedidoId }, actualizarDto);
-    return this.findOne(pedidoId, id);
+    await this.repositorio(manager).update({ id, pedidoId }, actualizarDto);
+    return this.findOne(pedidoId, id, manager);
   }
 
-  async remove(pedidoId: number, id: number): Promise<void> {
-    await this.repository.delete({ id, pedidoId });
+  async remove(
+    pedidoId: number,
+    id: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    await this.repositorio(manager).delete({ id, pedidoId });
+  }
+
+  private repositorio(manager?: EntityManager): Repository<PedidoProducto> {
+    return manager ? manager.getRepository(PedidoProducto) : this.repository;
   }
 }

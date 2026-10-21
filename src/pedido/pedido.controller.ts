@@ -6,9 +6,11 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseBoolPipe,
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { PedidoService } from './pedido.service';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
@@ -64,8 +66,10 @@ export class PedidoController {
   agregarProducto(
     @Param('pedidoId', ParseIntPipe) pedidoId: number,
     @Body() dto: CrearPedidoProductoDto,
+    @Query('permitirSinStock', new ParseBoolPipe({ optional: true }))
+    permitirSinStock?: boolean,
   ) {
-    return this.pedidoService.agregarProducto(pedidoId, dto);
+    return this.pedidoService.agregarProducto(pedidoId, dto, permitirSinStock);
   }
 
   @Patch(':pedidoId/items/:itemId')
@@ -74,8 +78,15 @@ export class PedidoController {
     @Param('pedidoId', ParseIntPipe) pedidoId: number,
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() dto: ActualizarPedidoProductoDto,
+    @Query('permitirSinStock', new ParseBoolPipe({ optional: true }))
+    permitirSinStock?: boolean,
   ) {
-    return this.pedidoService.actualizarProducto(pedidoId, itemId, dto);
+    return this.pedidoService.actualizarProducto(
+      pedidoId,
+      itemId,
+      dto,
+      permitirSinStock,
+    );
   }
 
   @Delete(':pedidoId/items/:itemId')
