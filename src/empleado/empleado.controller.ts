@@ -24,6 +24,12 @@ export class EmpleadoController {
     return this.empleadoService.findAll();
   }
 
+  // Va antes de ':id' para que "roles" no se interprete como un id.
+  @Get('roles')
+  getRoles() {
+    return this.empleadoService.findRoles();
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   crear(@Body() datos: CrearEmpleadoDto) {

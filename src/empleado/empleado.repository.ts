@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Empleado } from './entities/empleado.entity';
+import { EmpleadoTipoRol } from './entities/empleado-tipo-rol.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -9,6 +10,18 @@ export class EmpleadoRepository {
     @InjectRepository(Empleado)
     private readonly repository: Repository<Empleado>,
   ) {}
+
+  async findRoles(): Promise<EmpleadoTipoRol[]> {
+    return this.repository.manager
+      .getRepository(EmpleadoTipoRol)
+      .find({ order: { nombre: 'ASC' } });
+  }
+
+  async existeRol(id: number): Promise<boolean> {
+    return this.repository.manager
+      .getRepository(EmpleadoTipoRol)
+      .existsBy({ id });
+  }
 
   async findAll(): Promise<Empleado[]> {
     return this.repository.find({

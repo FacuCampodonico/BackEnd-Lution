@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -17,6 +18,13 @@ export class EmpleadoService {
     return (await this.empleadoRepository.findAll()).map((empleado) =>
       this.empleadoResponse(empleado),
     );
+  }
+
+  async findRoles(): Promise<{ id: number; nombre: string }[]> {
+    return (await this.empleadoRepository.findRoles()).map((rol) => ({
+      id: rol.id,
+      nombre: rol.nombre,
+    }));
   }
 
   async findById(id: number): Promise<EmpleadoResponse> {
@@ -44,6 +52,10 @@ export class EmpleadoService {
 
     if (empleadoExistente) {
       throw new ConflictException(`Ya existe un empleado con DNI ${dto.dni}`);
+    }
+
+    if (!(await this.empleadoRepository.existeRol(dto.idTipoRol))) {
+      throw new BadRequestException(`No existe el rol con id ${dto.idTipoRol}`);
     }
 
     const empleado = await this.empleadoRepository.create({
