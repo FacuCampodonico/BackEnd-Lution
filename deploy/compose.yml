@@ -1,0 +1,77 @@
+
+
+name: lution
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?falta MYSQL_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: lution_dsw
+      # Usuario de la app, con permisos solo sobre lution_dsw (no root).
+      MYSQL_USER: lution
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?falta MYSQL_PASSWORD en .env}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [interna]
+
+  api:
+    build: ..
+    image: lution-api
+    restart: unless-stopped
+    env_file: api.env
+    # Esto le gana a api.env: son datos de la topología, no configuración.
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: lution_dsw
+      DB_USER: lution
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [interna]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=lution_interna
+      - traefik.http.routers.lution-api.rule=Host(`${DOMINIO:?falta DOMINIO en .env}`) && PathPrefix(`/api/`)
+      - traefik.http.routers.lution-api.priority=100
+      - traefik.http.routers.lution-api.entrypoints=websecure
+      - traefik.http.routers.lution-api.tls.certresolver=letsencrypt
+      - traefik.http.services.lution-api.loadbalancer.server.port=3000
+
+  web:
+    build:
+      context: ../../FrontEnd-Lution/frontend
+      args:
+        VITE_API_URL: /api
+    image: lution-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks: [interna]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=lution_interna
+      - traefik.http.routers.lution-web.rule=Host(`${DOMINIO}`)
+      - traefik.http.routers.lution-web.priority=1
+      - traefik.http.routers.lution-web.entrypoints=websecure
+      - traefik.http.routers.lution-web.tls.certresolver=letsencrypt
+      - traefik.http.services.lution-web.loadbalancer.server.port=80
+
+networks:
+  interna:
+
+volumes:
+  mysql-data:

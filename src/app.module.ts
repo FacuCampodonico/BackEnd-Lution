@@ -32,7 +32,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         password: config.get<string>('database.password'),
         database: config.get<string>('database.name'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: config.get<boolean>('database.synchronize', true),
       }),
     }),
 
