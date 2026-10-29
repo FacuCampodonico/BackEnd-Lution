@@ -57,6 +57,7 @@ export class PedidoRepository {
       relations: {
         pedidosProductos: { producto: true },
         mesa: true,
+        pago: true,
       },
     });
   }

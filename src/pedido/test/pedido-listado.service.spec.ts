@@ -5,6 +5,7 @@ import { PedidoRepository } from '../pedido.repository';
 import { PedidoProductoRepository } from '../pedido-producto.repository';
 import { Pedido, EstadoPedido } from '../entities/pedido.entity';
 import { PagoService } from '../../pago/pago.service';
+import { MercadoPagoService } from '../../pago/mercado-pago.service';
 import { ProductoService } from '../../producto/services/producto.service';
 import { ProductoRepository } from '../../producto/repositories/producto.repository';
 import { EmpleadoRepository } from '../../empleado/empleado.repository';
@@ -37,6 +38,7 @@ describe('PedidoService.findPaginado', () => {
           ProductoRepository,
           EmpleadoRepository,
           StockService,
+          MercadoPagoService,
         ].map((provide) => ({ provide, useValue: {} })),
       ],
     }).compile();

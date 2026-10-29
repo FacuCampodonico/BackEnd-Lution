@@ -17,4 +17,12 @@ export default () => ({
     secret: process.env.JWT_SECRET ?? '',
     expiresIn: process.env.JWT_EXPIRES_IN || '8h',
   },
+  frontendUrl: (process.env.FRONTEND_URL || 'http://localhost:5173').replace(
+    /\/$/,
+    '',
+  ),
+  mercadoPago: {
+    accessToken: process.env.MP_ACCESS_TOKEN ?? '',
+    sandbox: process.env.MP_SANDBOX !== 'false',
+  },
 });

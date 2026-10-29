@@ -6,6 +6,8 @@ import {
   type PedidosPaginadosResponse,
 } from './dto/pedido-response.dto';
 import type { PagoRegistradoResponse } from '../pago/dto/pago-registrado-response.dto';
+import type { PreferenciaMercadoPagoResponse } from '../pago/dto/preferencia-mercado-pago-response.dto';
+import { MercadoPagoService } from '../pago/mercado-pago.service';
 import {
   BadRequestException,
   ConflictException,
@@ -48,6 +50,7 @@ export class PedidoService {
     private readonly productoRepository: ProductoRepository,
     private readonly empleadoRepository: EmpleadoRepository,
     private readonly stockService: StockService,
+    private readonly mercadoPagoService: MercadoPagoService,
   ) {}
 
   async obtenerPedidoAbiertoPorMesa(
@@ -163,13 +166,7 @@ export class PedidoService {
         );
       }
 
-      const totalCalculado = (pedido.pedidosProductos || []).reduce(
-        (acc, item) => {
-          const precio = Number(item.producto?.precio || 0);
-          return acc + precio * item.cantidad;
-        },
-        0,
-      );
+      const totalCalculado = calcularTotal(pedido);
 
       let vuelto = 0;
       if (dto.tipo === TipoPago.EFECTIVO) {
@@ -194,18 +191,7 @@ export class PedidoService {
         manager,
       );
 
-      pedido.estado = EstadoPedido.PAGADO;
-      pedido.total = totalCalculado;
-      pedido.fechaHoraCierre = new Date();
-      await this.pedidoRepository.save(pedido, manager);
-
-      if (pedido.mesa) {
-        await this.mesaRepository.actualizarEstado(
-          pedido.mesa.id,
-          EstadoMesa.LIBRE,
-          manager,
-        );
-      }
+      await this.cerrarPedidoPagado(pedido, totalCalculado, manager);
 
       return {
         message: 'Pago registrado con éxito',
@@ -214,6 +200,118 @@ export class PedidoService {
         vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : 0,
       };
     });
+  }
+
+  async crearPreferenciaMercadoPago(
+    pedidoId: number,
+  ): Promise<PreferenciaMercadoPagoResponse> {
+    const pedido = await this.findEntityById(pedidoId);
+
+    if (pedido.estado === EstadoPedido.PAGADO) {
+      throw new ConflictException(`El pedido con ID ${pedidoId} ya fue pagado`);
+    }
+
+    const items = (pedido.pedidosProductos ?? []).map((item) => ({
+      id: String(item.productoId),
+      title: item.producto?.nombre ?? `Producto ${item.productoId}`,
+      quantity: item.cantidad,
+      unit_price: Number(item.producto?.precio || 0),
+    }));
+
+    if (items.length === 0 || calcularTotal(pedido) <= 0) {
+      throw new BadRequestException(
+        `El pedido con ID ${pedidoId} no tiene productos para cobrar`,
+      );
+    }
+
+    const preferencia = await this.mercadoPagoService.crearPreferencia({
+      items,
+      externalReference: String(pedido.id),
+      rutaRetorno: `/mesas/${pedido.mesaId}/pago`,
+    });
+
+    return {
+      preferenceId: preferencia.id,
+      checkoutUrl: preferencia.checkoutUrl,
+    };
+  }
+
+  async confirmarPagoMercadoPago(
+    pedidoId: number,
+    paymentId: string,
+  ): Promise<PagoRegistradoResponse> {
+    // Nunca se confía en los query params del retorno: el estado se consulta a Mercado Pago.
+    const pagoMp = await this.mercadoPagoService.obtenerPago(paymentId);
+
+    if (pagoMp.external_reference !== String(pedidoId)) {
+      throw new BadRequestException(
+        'El pago de Mercado Pago no corresponde a este pedido',
+      );
+    }
+
+    if (pagoMp.status !== 'approved') {
+      throw new BadRequestException(mensajeEstadoMercadoPago(pagoMp.status));
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const pedido = await this.pedidoRepository.findParaPago(
+        pedidoId,
+        manager,
+      );
+
+      if (!pedido) {
+        throw new NotFoundException(`El pedido con ID ${pedidoId} no existe`);
+      }
+
+      if (pedido.estado === EstadoPedido.PAGADO) {
+        // Volver a confirmar el mismo pago (ej. recargar la página) no es un error.
+        if (pedido.pago?.mpPaymentId === String(pagoMp.id)) {
+          return pagoMercadoPagoRegistrado(pedido.id, Number(pedido.total));
+        }
+        throw new ConflictException(
+          `El pedido con ID ${pedidoId} ya fue pagado`,
+        );
+      }
+
+      const totalCalculado = calcularTotal(pedido);
+      if (Math.abs(pagoMp.transaction_amount - totalCalculado) > 0.009) {
+        throw new BadRequestException(
+          `El monto pagado en Mercado Pago ($${pagoMp.transaction_amount}) no coincide con el total del pedido ($${totalCalculado})`,
+        );
+      }
+
+      await this.pagoService.create(
+        {
+          tipo: TipoPago.MERCADO_PAGO,
+          mpPaymentId: String(pagoMp.id),
+          pedido: { id: pedido.id },
+        },
+        manager,
+      );
+
+      await this.cerrarPedidoPagado(pedido, totalCalculado, manager);
+
+      return pagoMercadoPagoRegistrado(pedido.id, totalCalculado);
+    });
+  }
+
+  private async cerrarPedidoPagado(
+    pedido: Pedido,
+    total: number,
+    manager: EntityManager,
+  ) {
+    pedido.estado = EstadoPedido.PAGADO;
+    pedido.total = total;
+    pedido.fechaHoraCierre = new Date();
+    await this.pedidoRepository.save(pedido, manager);
+
+    if (pedido.mesa) {
+      await this.mesaRepository.actualizarEstado(
+        pedido.mesa.id,
+        EstadoMesa.LIBRE,
+        manager,
+      );
+    }
   }
 
   async findPaginado(
@@ -393,4 +491,35 @@ export class PedidoService {
     }
     return item;
   }
+}
+
+/** Total según los precios actuales; ignora el `total` guardado en el pedido. */
+function calcularTotal(pedido: Pedido): number {
+  return (pedido.pedidosProductos || []).reduce((acc, item) => {
+    const precio = Number(item.producto?.precio || 0);
+    return acc + precio * item.cantidad;
+  }, 0);
+}
+
+function pagoMercadoPagoRegistrado(
+  pedidoId: number,
+  total: number,
+): PagoRegistradoResponse {
+  return {
+    message: 'Pago con Mercado Pago registrado con éxito',
+    pedidoId: String(pedidoId),
+    total,
+    vuelto: 0,
+  };
+}
+
+function mensajeEstadoMercadoPago(status: string): string {
+  if (
+    status === 'pending' ||
+    status === 'in_process' ||
+    status === 'authorized'
+  ) {
+    return 'El pago de Mercado Pago todavía está pendiente de acreditación';
+  }
+  return `El pago de Mercado Pago no fue aprobado (estado: ${status})`;
 }

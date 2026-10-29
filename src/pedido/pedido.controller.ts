@@ -18,6 +18,7 @@ import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 import { ListarPedidosDto } from './dto/listar-pedidos.dto';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
+import { ConfirmarPagoMercadoPagoDto } from '../pago/dto/confirmar-pago-mercado-pago.dto';
 import { Niveles } from '../common/decorators/niveles.decorator';
 
 @Controller('pedidos')
@@ -59,6 +60,23 @@ export class PedidoController {
     @Body() dto: CrearPagoDto,
   ) {
     return this.pedidoService.registrarPago(pedidoId, dto);
+  }
+
+  @Post(':pedidoId/pago/mercadopago')
+  @HttpCode(HttpStatus.CREATED)
+  crearPreferenciaMercadoPago(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+  ) {
+    return this.pedidoService.crearPreferenciaMercadoPago(pedidoId);
+  }
+
+  @Post(':pedidoId/pago/mercadopago/confirmar')
+  @HttpCode(HttpStatus.OK)
+  confirmarPagoMercadoPago(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+    @Body() dto: ConfirmarPagoMercadoPagoDto,
+  ) {
+    return this.pedidoService.confirmarPagoMercadoPago(pedidoId, dto.paymentId);
   }
 
   @Post(':pedidoId/items')

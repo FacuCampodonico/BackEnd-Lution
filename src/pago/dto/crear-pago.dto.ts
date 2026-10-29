@@ -1,5 +1,5 @@
 import {
-  IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -9,8 +9,9 @@ import {
 import { TipoPago } from '../enums/tipo-pago.enum';
 
 export class CrearPagoDto {
-  @IsEnum(TipoPago)
-  tipo: TipoPago;
+  // Mercado Pago no se registra a mano: entra por /pago/mercadopago/confirmar.
+  @IsIn([TipoPago.EFECTIVO, TipoPago.TARJETA])
+  tipo: TipoPago.EFECTIVO | TipoPago.TARJETA;
 
   @ValidateIf((o) => o.tipo === TipoPago.EFECTIVO)
   @IsNumber()

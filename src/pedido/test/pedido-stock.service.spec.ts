@@ -6,6 +6,7 @@ import { PedidoProductoRepository } from '../pedido-producto.repository';
 import { Pedido, EstadoPedido } from '../entities/pedido.entity';
 import { PedidoProducto } from '../entities/pedido-producto.entity';
 import { PagoService } from '../../pago/pago.service';
+import { MercadoPagoService } from '../../pago/mercado-pago.service';
 import { ProductoService } from '../../producto/services/producto.service';
 import { ProductoRepository } from '../../producto/repositories/producto.repository';
 import { Producto } from '../../producto/entities/producto.entity';
@@ -90,6 +91,7 @@ describe('PedidoService: control de stock', () => {
         { provide: MesaRepository, useValue: mesaRepository },
         { provide: EmpleadoRepository, useValue: empleadoRepository },
         { provide: PagoService, useValue: {} },
+        { provide: MercadoPagoService, useValue: {} },
         {
           provide: DataSource,
           useValue: {
