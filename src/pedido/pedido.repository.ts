@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, type DeepPartial, type EntityManager } from 'typeorm';
+import {
+  Repository,
+  type DeepPartial,
+  type EntityManager,
+  type FindOptionsWhere,
+} from 'typeorm';
 import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
+import { ListarPedidosDto } from './dto/listar-pedidos.dto';
 
 @Injectable()
 export class PedidoRepository {
@@ -19,9 +25,19 @@ export class PedidoRepository {
     return repository.save(datos);
   }
 
-  async findAll(): Promise<Pedido[]> {
-    return await this.repository.find({
+  async findPaginado(filtros: ListarPedidosDto): Promise<[Pedido[], number]> {
+    const { mesaId, empleadoId, estado, pagina, limite } = filtros;
+    // TypeORM 1.x rechaza claves undefined en el where: solo van los filtros presentes.
+    const where: FindOptionsWhere<Pedido> = {};
+    if (mesaId !== undefined) where.mesaId = mesaId;
+    if (empleadoId !== undefined) where.empleadoId = empleadoId;
+    if (estado !== undefined) where.estado = estado;
+    return await this.repository.findAndCount({
+      where,
       relations: { pedidosProductos: { producto: true }, empleado: true },
+      order: { id: 'DESC' },
+      skip: (pagina - 1) * limite,
+      take: limite,
     });
   }
 

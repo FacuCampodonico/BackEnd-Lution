@@ -3,6 +3,7 @@ import {
   pedidoItemResponse,
   type PedidoResponse,
   type PedidoItemResponse,
+  type PedidosPaginadosResponse,
 } from './dto/pedido-response.dto';
 import type { PagoRegistradoResponse } from '../pago/dto/pago-registrado-response.dto';
 import {
@@ -19,6 +20,7 @@ import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 import { CrearPedidoMesaDto } from './dto/crear-pedido-mesa.dto';
+import { ListarPedidosDto } from './dto/listar-pedidos.dto';
 import { Pedido, EstadoPedido } from './entities/pedido.entity';
 import { EstadoMesa } from '../mesa/entities/mesa.entity';
 import { ProductoRepository } from '../producto/repositories/producto.repository';
@@ -214,8 +216,16 @@ export class PedidoService {
     });
   }
 
-  async findAll(): Promise<PedidoResponse[]> {
-    return (await this.pedidoRepository.findAll()).map(pedidoResponse);
+  async findPaginado(
+    filtros: ListarPedidosDto,
+  ): Promise<PedidosPaginadosResponse> {
+    const [pedidos, total] = await this.pedidoRepository.findPaginado(filtros);
+    return {
+      data: pedidos.map(pedidoResponse),
+      total,
+      pagina: filtros.pagina,
+      limite: filtros.limite,
+    };
   }
 
   async findById(id: number): Promise<PedidoResponse> {

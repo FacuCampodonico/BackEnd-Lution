@@ -16,6 +16,7 @@ import { PedidoService } from './pedido.service';
 import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
 import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
+import { ListarPedidosDto } from './dto/listar-pedidos.dto';
 import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
 import { Niveles } from '../common/decorators/niveles.decorator';
 
@@ -24,8 +25,8 @@ export class PedidoController {
   constructor(private readonly pedidoService: PedidoService) {}
 
   @Get()
-  getAll() {
-    return this.pedidoService.findAll();
+  getAll(@Query() filtros: ListarPedidosDto) {
+    return this.pedidoService.findPaginado(filtros);
   }
 
   @Get(':id')
