@@ -74,6 +74,28 @@ export class Pedido {
   @OneToMany(() => PedidoProducto, (pedidoProducto) => pedidoProducto.pedido)
   pedidosProductos: PedidoProducto[];
 
+  /** Preferencia de Mercado Pago con el QR vigente; mientras esté activa el pedido no se modifica. */
+  @Column({
+    name: 'mp_preference_id',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  mpPreferenceId: string | null;
+
+  @Column({ name: 'mp_preferencia_expira', type: 'datetime', nullable: true })
+  mpPreferenciaExpira: Date | null;
+
   @OneToOne(() => Pago, (pago) => pago.pedido)
   pago: Pago;
+}
+
+/** Hay un QR de Mercado Pago generado y todavía sin vencer. */
+export function cobroMercadoPagoActivo(pedido: Pedido): boolean {
+  return (
+    pedido.estado === EstadoPedido.ABIERTO &&
+    !!pedido.mpPreferenceId &&
+    !!pedido.mpPreferenciaExpira &&
+    new Date(pedido.mpPreferenciaExpira).getTime() > Date.now()
+  );
 }

@@ -75,6 +75,7 @@ describe('PedidoService.findPaginado', () => {
           empleadoId: null,
           empleadoNombre: null,
           estado: EstadoPedido.ABIERTO,
+          cobroMercadoPagoPendiente: false,
           items: [],
           total: 0,
         },

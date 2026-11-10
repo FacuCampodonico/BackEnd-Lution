@@ -70,6 +70,16 @@ export class PedidoController {
     return this.pedidoService.crearPreferenciaMercadoPago(pedidoId);
   }
 
+  @Get(':pedidoId/pago/mercadopago/estado')
+  estadoCobroMercadoPago(@Param('pedidoId', ParseIntPipe) pedidoId: number) {
+    return this.pedidoService.estadoCobroMercadoPago(pedidoId);
+  }
+
+  @Delete(':pedidoId/pago/mercadopago')
+  cancelarCobroMercadoPago(@Param('pedidoId', ParseIntPipe) pedidoId: number) {
+    return this.pedidoService.cancelarCobroMercadoPago(pedidoId);
+  }
+
   @Post(':pedidoId/pago/mercadopago/confirmar')
   @HttpCode(HttpStatus.OK)
   confirmarPagoMercadoPago(

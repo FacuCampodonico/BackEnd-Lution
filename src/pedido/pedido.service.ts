@@ -6,12 +6,16 @@ import {
   type PedidosPaginadosResponse,
 } from './dto/pedido-response.dto';
 import type { PagoRegistradoResponse } from '../pago/dto/pago-registrado-response.dto';
-import type { PreferenciaMercadoPagoResponse } from '../pago/dto/preferencia-mercado-pago-response.dto';
+import type {
+  EstadoCobroMercadoPagoResponse,
+  PreferenciaMercadoPagoResponse,
+} from '../pago/dto/preferencia-mercado-pago-response.dto';
 import { MercadoPagoService } from '../pago/mercado-pago.service';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource, type EntityManager } from 'typeorm';
@@ -23,7 +27,11 @@ import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
 import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
 import { CrearPedidoMesaDto } from './dto/crear-pedido-mesa.dto';
 import { ListarPedidosDto } from './dto/listar-pedidos.dto';
-import { Pedido, EstadoPedido } from './entities/pedido.entity';
+import {
+  Pedido,
+  EstadoPedido,
+  cobroMercadoPagoActivo,
+} from './entities/pedido.entity';
 import { EstadoMesa } from '../mesa/entities/mesa.entity';
 import { ProductoRepository } from '../producto/repositories/producto.repository';
 import { PagoService } from '../pago/pago.service';
@@ -40,6 +48,8 @@ import {
 
 @Injectable()
 export class PedidoService {
+  private readonly logger = new Logger(PedidoService.name);
+
   constructor(
     private readonly pedidoRepository: PedidoRepository,
     private readonly pedidoProductoRepository: PedidoProductoRepository,
@@ -166,6 +176,9 @@ export class PedidoService {
         );
       }
 
+      // Con el QR vivo el cliente todavía podría pagar: primero hay que cancelarlo.
+      this.exigirSinCobroMercadoPago(pedido);
+
       const totalCalculado = calcularTotal(pedido);
 
       let vuelto = 0;
@@ -224,16 +237,124 @@ export class PedidoService {
       );
     }
 
+    // Regenerar el QR: antes se confirma que el anterior no se haya pagado y se lo vence.
+    if (pedido.mpPreferenceId) {
+      if (await this.conciliarPagoMercadoPago(pedidoId)) {
+        throw new ConflictException(
+          `El pedido con ID ${pedidoId} ya fue pagado`,
+        );
+      }
+      await this.mercadoPagoService.expirarPreferencia(pedido.mpPreferenceId);
+    }
+
     const preferencia = await this.mercadoPagoService.crearPreferencia({
       items,
       externalReference: String(pedido.id),
-      rutaRetorno: `/mesas/${pedido.mesaId}/pago`,
     });
+
+    await this.pedidoRepository.setCobroMercadoPago(
+      pedido.id,
+      preferencia.id,
+      preferencia.expiraEn,
+    );
 
     return {
       preferenceId: preferencia.id,
       checkoutUrl: preferencia.checkoutUrl,
+      expiraEn: preferencia.expiraEn.toISOString(),
     };
+  }
+
+  async estadoCobroMercadoPago(
+    pedidoId: number,
+  ): Promise<EstadoCobroMercadoPagoResponse> {
+    let pedido = await this.findEntityById(pedidoId);
+
+    if (cobroMercadoPagoActivo(pedido)) {
+      try {
+        await this.conciliarPagoMercadoPago(pedidoId);
+      } catch (error) {
+        this.logger.warn(
+          `No se pudo conciliar el pedido ${pedidoId}: ${String(error)}`,
+        );
+      }
+      pedido = await this.findEntityById(pedidoId);
+    }
+
+    if (pedido.estado === EstadoPedido.PAGADO) {
+      return { estado: 'pagado', total: Number(pedido.total) };
+    }
+    if (cobroMercadoPagoActivo(pedido)) {
+      return {
+        estado: 'pendiente',
+        expiraEn: new Date(pedido.mpPreferenciaExpira!).toISOString(),
+      };
+    }
+    return { estado: 'sin_cobro' };
+  }
+
+  /** Cancela el QR vigente. Si el cliente alcanzó a pagar, el pedido queda cerrado y se avisa. */
+  async cancelarCobroMercadoPago(pedidoId: number): Promise<PedidoResponse> {
+    const pedido = await this.findEntityById(pedidoId);
+
+    if (pedido.estado === EstadoPedido.PAGADO) {
+      throw new ConflictException(`El pedido con ID ${pedidoId} ya fue pagado`);
+    }
+    if (pedido.mpPreferenceId) {
+      if (await this.conciliarPagoMercadoPago(pedidoId)) {
+        throw new ConflictException(
+          'El cliente ya pagó con Mercado Pago: el pedido quedó cerrado',
+        );
+      }
+      await this.mercadoPagoService.expirarPreferencia(pedido.mpPreferenceId);
+      await this.pedidoRepository.setCobroMercadoPago(pedidoId, null, null);
+    }
+    return this.findById(pedidoId);
+  }
+
+  /** Webhook de Mercado Pago: confirma el pago si está aprobado y corresponde a un pedido. */
+  async notificarPagoMercadoPago(paymentId: string): Promise<void> {
+    let pagoMp: Awaited<ReturnType<MercadoPagoService['obtenerPago']>>;
+    try {
+      pagoMp = await this.mercadoPagoService.obtenerPago(paymentId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        this.logger.warn(`Webhook: ${error.message}`);
+        return;
+      }
+      throw error; // falla transitoria: se responde 5xx y Mercado Pago reintenta
+    }
+
+    const pedidoId = Number(pagoMp.external_reference);
+    if (!Number.isInteger(pedidoId) || pagoMp.status !== 'approved') return;
+
+    try {
+      await this.confirmarPagoMercadoPago(pedidoId, paymentId);
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof NotFoundException
+      ) {
+        // Cobrado en MP pero no se pudo cerrar (monto distinto, pedido ya pagado...): requiere revisión manual.
+        this.logger.error(
+          `Pago ${paymentId} aprobado en Mercado Pago pero el pedido ${pedidoId} no se cerró: ${error.message}`,
+        );
+        return;
+      }
+      throw error;
+    }
+  }
+
+  /** Busca un pago aprobado del pedido en Mercado Pago y, si existe, lo cierra. */
+  private async conciliarPagoMercadoPago(pedidoId: number): Promise<boolean> {
+    const pagos = await this.mercadoPagoService.buscarPagosPorReferencia(
+      String(pedidoId),
+    );
+    const aprobado = pagos.find((pago) => pago.status === 'approved');
+    if (!aprobado) return false;
+    await this.confirmarPagoMercadoPago(pedidoId, String(aprobado.id));
+    return true;
   }
 
   async confirmarPagoMercadoPago(
@@ -303,6 +424,8 @@ export class PedidoService {
     pedido.estado = EstadoPedido.PAGADO;
     pedido.total = total;
     pedido.fechaHoraCierre = new Date();
+    pedido.mpPreferenceId = null;
+    pedido.mpPreferenciaExpira = null;
     await this.pedidoRepository.save(pedido, manager);
 
     if (pedido.mesa) {
@@ -350,6 +473,7 @@ export class PedidoService {
         `El pedido con ID ${id} ya fue pagado y no se puede cancelar`,
       );
     }
+    this.exigirSinCobroMercadoPago(pedido);
 
     await this.dataSource.transaction(async (manager) => {
       await this.stockService.ajustar(
@@ -471,7 +595,17 @@ export class PedidoService {
         `El pedido con ID ${id} está cerrado y no se puede modificar`,
       );
     }
+    this.exigirSinCobroMercadoPago(pedido);
     return pedido;
+  }
+
+  /** Con un QR vigente el total no puede cambiar: el cliente pagaría un monto que el back rechazaría. */
+  private exigirSinCobroMercadoPago(pedido: Pedido) {
+    if (cobroMercadoPagoActivo(pedido)) {
+      throw new ConflictException(
+        `El pedido con ID ${pedido.id} tiene un cobro con Mercado Pago en curso: cancelalo antes de continuar`,
+      );
+    }
   }
 
   private async findItem(

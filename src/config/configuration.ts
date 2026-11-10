@@ -22,8 +22,10 @@ export default () => ({
     /\/$/,
     '',
   ),
+  apiPublicUrl: (process.env.API_PUBLIC_URL ?? '').replace(/\/$/, ''),
   mercadoPago: {
     accessToken: process.env.MP_ACCESS_TOKEN ?? '',
     sandbox: process.env.MP_SANDBOX !== 'false',
+    webhookSecret: process.env.MP_WEBHOOK_SECRET ?? '',
   },
 });
