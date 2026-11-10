@@ -74,6 +74,14 @@ export class PedidoRepository {
     return this.findOne(id);
   }
 
+  async setCobroMercadoPago(
+    id: number,
+    mpPreferenceId: string | null,
+    mpPreferenciaExpira: Date | null,
+  ): Promise<void> {
+    await this.repository.update(id, { mpPreferenceId, mpPreferenciaExpira });
+  }
+
   async remove(id: number, manager?: EntityManager): Promise<void> {
     const repository = manager
       ? manager.getRepository(Pedido)

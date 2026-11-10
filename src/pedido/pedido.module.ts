@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { PedidoController } from './pedido.controller';
+import { MercadoPagoWebhookController } from './mercado-pago-webhook.controller';
 import { PedidoService } from './pedido.service';
 import { PedidoRepository } from './pedido.repository';
 import { PedidoProductoRepository } from './pedido-producto.repository';
@@ -22,7 +23,7 @@ import { MesaRepository } from '../mesa/mesa.repository';
     EmpleadoModule,
     InsumoModule,
   ],
-  controllers: [PedidoController],
+  controllers: [PedidoController, MercadoPagoWebhookController],
   providers: [
     PedidoService,
     PedidoRepository,

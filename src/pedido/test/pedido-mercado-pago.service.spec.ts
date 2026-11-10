@@ -33,6 +33,7 @@ describe('PedidoService: Mercado Pago', () => {
     findOne: jest.fn(),
     findParaPago: jest.fn(),
     save: jest.fn(),
+    setCobroMercadoPago: jest.fn(),
   };
   const mesaRepository = { actualizarEstado: jest.fn() };
   const mercadoPagoService = {
@@ -85,6 +86,7 @@ describe('PedidoService: Mercado Pago', () => {
     mercadoPagoService.crearPreferencia.mockResolvedValue({
       id: 'pref-1',
       checkoutUrl: 'https://sandbox.mercadopago.com.ar/checkout/pref-1',
+      expiraEn: new Date('2026-11-10T15:00:00.000Z'),
     });
 
     module = await Test.createTestingModule({
@@ -116,20 +118,25 @@ describe('PedidoService: Mercado Pago', () => {
   afterEach(async () => module.close());
 
   describe('crearPreferenciaMercadoPago', () => {
-    it('arma la preferencia con los productos del pedido y vuelve a la pantalla de pago de la mesa', async () => {
+    it('arma la preferencia con los productos del pedido y deja el QR vigente en el pedido', async () => {
       const resultado = await service.crearPreferenciaMercadoPago(1);
 
       expect(resultado).toEqual({
         preferenceId: 'pref-1',
         checkoutUrl: 'https://sandbox.mercadopago.com.ar/checkout/pref-1',
+        expiraEn: '2026-11-10T15:00:00.000Z',
       });
+      expect(pedidoRepository.setCobroMercadoPago).toHaveBeenCalledWith(
+        1,
+        'pref-1',
+        new Date('2026-11-10T15:00:00.000Z'),
+      );
       expect(mercadoPagoService.crearPreferencia).toHaveBeenCalledWith({
         items: [
           { id: '7', title: 'Milanesa', quantity: 2, unit_price: 8500 },
           { id: '9', title: 'Agua', quantity: 3, unit_price: 1000 },
         ],
         externalReference: '1',
-        rutaRetorno: '/mesas/2/pago',
       });
     });
 

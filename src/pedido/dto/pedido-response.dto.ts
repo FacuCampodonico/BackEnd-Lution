@@ -1,4 +1,8 @@
-import { EstadoPedido, type Pedido } from '../entities/pedido.entity';
+import {
+  EstadoPedido,
+  cobroMercadoPagoActivo,
+  type Pedido,
+} from '../entities/pedido.entity';
 import type { PedidoProducto } from '../entities/pedido-producto.entity';
 
 export interface PedidoItemResponse {
@@ -17,6 +21,7 @@ export interface PedidoResponse {
   items: PedidoItemResponse[];
   total: number;
   estado: EstadoPedido;
+  cobroMercadoPagoPendiente: boolean;
 }
 
 export interface PedidosPaginadosResponse {
@@ -53,5 +58,6 @@ export function pedidoResponse(pedido: Pedido): PedidoResponse {
     estado: pedido.estado,
     items,
     total,
+    cobroMercadoPagoPendiente: cobroMercadoPagoActivo(pedido),
   };
 }
