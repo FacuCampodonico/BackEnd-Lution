@@ -1,0 +1,129 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseBoolPipe,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { PedidoService } from './pedido.service';
+import { ActualizarPedidoDto } from './dto/actualizar-pedido.dto';
+import { CrearPedidoProductoDto } from './dto/crear-pedido-producto.dto';
+import { ActualizarPedidoProductoDto } from './dto/actualizar-pedido-producto.dto';
+import { ListarPedidosDto } from './dto/listar-pedidos.dto';
+import { CrearPagoDto } from '../pago/dto/crear-pago.dto';
+import { ConfirmarPagoMercadoPagoDto } from '../pago/dto/confirmar-pago-mercado-pago.dto';
+import { Niveles } from '../common/decorators/niveles.decorator';
+
+@Controller('pedidos')
+export class PedidoController {
+  constructor(private readonly pedidoService: PedidoService) {}
+
+  @Get()
+  getAll(@Query() filtros: ListarPedidosDto) {
+    return this.pedidoService.findPaginado(filtros);
+  }
+
+  @Get(':id')
+  getById(@Param('id', ParseIntPipe) id: number) {
+    return this.pedidoService.obtenerPedidoPorId(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ActualizarPedidoDto,
+  ) {
+    return this.pedidoService.update(id, dto);
+  }
+
+  @Delete(':id')
+  delete(@Param('id', ParseIntPipe) id: number) {
+    return this.pedidoService.delete(id);
+  }
+
+  @Get(':id/items')
+  getProductos(@Param('id', ParseIntPipe) id: number) {
+    return this.pedidoService.findProductos(id);
+  }
+
+  @Post(':pedidoId/pago')
+  @HttpCode(HttpStatus.OK)
+  registrarPago(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+    @Body() dto: CrearPagoDto,
+  ) {
+    return this.pedidoService.registrarPago(pedidoId, dto);
+  }
+
+  @Post(':pedidoId/pago/mercadopago')
+  @HttpCode(HttpStatus.CREATED)
+  crearPreferenciaMercadoPago(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+  ) {
+    return this.pedidoService.crearPreferenciaMercadoPago(pedidoId);
+  }
+
+  @Get(':pedidoId/pago/mercadopago/estado')
+  estadoCobroMercadoPago(@Param('pedidoId', ParseIntPipe) pedidoId: number) {
+    return this.pedidoService.estadoCobroMercadoPago(pedidoId);
+  }
+
+  @Delete(':pedidoId/pago/mercadopago')
+  cancelarCobroMercadoPago(@Param('pedidoId', ParseIntPipe) pedidoId: number) {
+    return this.pedidoService.cancelarCobroMercadoPago(pedidoId);
+  }
+
+  @Post(':pedidoId/pago/mercadopago/confirmar')
+  @HttpCode(HttpStatus.OK)
+  confirmarPagoMercadoPago(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+    @Body() dto: ConfirmarPagoMercadoPagoDto,
+  ) {
+    return this.pedidoService.confirmarPagoMercadoPago(pedidoId, dto.paymentId);
+  }
+
+  @Post(':pedidoId/items')
+  @Niveles('admin', 'mozo')
+  @HttpCode(HttpStatus.CREATED)
+  agregarProducto(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+    @Body() dto: CrearPedidoProductoDto,
+    @Query('permitirSinStock', new ParseBoolPipe({ optional: true }))
+    permitirSinStock?: boolean,
+  ) {
+    return this.pedidoService.agregarProducto(pedidoId, dto, permitirSinStock);
+  }
+
+  @Patch(':pedidoId/items/:itemId')
+  @Niveles('admin', 'mozo')
+  actualizarProducto(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: ActualizarPedidoProductoDto,
+    @Query('permitirSinStock', new ParseBoolPipe({ optional: true }))
+    permitirSinStock?: boolean,
+  ) {
+    return this.pedidoService.actualizarProducto(
+      pedidoId,
+      itemId,
+      dto,
+      permitirSinStock,
+    );
+  }
+
+  @Delete(':pedidoId/items/:itemId')
+  @Niveles('admin', 'mozo')
+  removeItem(
+    @Param('pedidoId', ParseIntPipe) pedidoId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+  ) {
+    return this.pedidoService.eliminarProducto(pedidoId, itemId);
+  }
+}

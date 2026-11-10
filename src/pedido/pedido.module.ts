@@ -1,0 +1,35 @@
+import { Module } from '@nestjs/common';
+
+import { PedidoController } from './pedido.controller';
+import { MercadoPagoWebhookController } from './mercado-pago-webhook.controller';
+import { PedidoService } from './pedido.service';
+import { PedidoRepository } from './pedido.repository';
+import { PedidoProductoRepository } from './pedido-producto.repository';
+import { Pedido } from './entities/pedido.entity';
+import { PedidoProducto } from './entities/pedido-producto.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProductoModule } from '../producto/producto.module';
+import { PagoModule } from '../pago/pago.module';
+import { EmpleadoModule } from '../empleado/empleado.module';
+import { InsumoModule } from '../insumo/insumo.module';
+import { Mesa } from '../mesa/entities/mesa.entity';
+import { MesaRepository } from '../mesa/mesa.repository';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([Pedido, PedidoProducto, Mesa]),
+    ProductoModule,
+    PagoModule,
+    EmpleadoModule,
+    InsumoModule,
+  ],
+  controllers: [PedidoController, MercadoPagoWebhookController],
+  providers: [
+    PedidoService,
+    PedidoRepository,
+    PedidoProductoRepository,
+    MesaRepository,
+  ],
+  exports: [PedidoService, PedidoRepository],
+})
+export class PedidoModule {}
