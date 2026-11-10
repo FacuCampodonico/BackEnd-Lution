@@ -38,6 +38,8 @@ services:
       DB_NAME: lution_dsw
       DB_USER: lution
       DB_PASSWORD: ${MYSQL_PASSWORD}
+      # Mercado Pago vuelve acá después del checkout (sale del mismo dominio que Traefik).
+      FRONTEND_URL: https://${DOMINIO}
     depends_on:
       db:
         condition: service_healthy
