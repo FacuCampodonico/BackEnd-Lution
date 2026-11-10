@@ -40,6 +40,8 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       # Mercado Pago vuelve acá después del checkout (sale del mismo dominio que Traefik).
       FRONTEND_URL: https://${DOMINIO}
+      # Mercado Pago avisa los pagos a ${API_PUBLIC_URL}/mercadopago/webhook (configurarlo en el panel).
+      API_PUBLIC_URL: https://${DOMINIO}/api
     depends_on:
       db:
         condition: service_healthy
