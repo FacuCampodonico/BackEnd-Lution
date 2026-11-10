@@ -1,4 +1,5 @@
 export enum TipoPago {
   EFECTIVO = 'EFECTIVO',
   TARJETA = 'TARJETA',
+  MERCADO_PAGO = 'MERCADO_PAGO',
 }

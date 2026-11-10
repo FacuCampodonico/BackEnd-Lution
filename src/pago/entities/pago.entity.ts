@@ -48,7 +48,16 @@ export class Pago {
 
   @Column({ type: 'int', nullable: true })
   cuotas?: number;
-  
+
+  @Column({
+    name: 'mp_payment_id',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    unique: true,
+  })
+  mpPaymentId?: string;
+
   @OneToOne(() => Pedido, (pedido) => pedido.pago, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'pedido_id' })
   pedido: Pedido;

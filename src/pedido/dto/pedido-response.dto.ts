@@ -19,6 +19,13 @@ export interface PedidoResponse {
   estado: EstadoPedido;
 }
 
+export interface PedidosPaginadosResponse {
+  data: PedidoResponse[];
+  total: number;
+  pagina: number;
+  limite: number;
+}
+
 export function pedidoItemResponse(item: PedidoProducto): PedidoItemResponse {
   return {
     id: String(item.id),

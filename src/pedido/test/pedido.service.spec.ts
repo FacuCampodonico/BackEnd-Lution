@@ -11,6 +11,7 @@ import { PedidoProductoRepository } from '../pedido-producto.repository';
 import { Pedido, EstadoPedido } from '../entities/pedido.entity';
 import { PedidoProducto } from '../entities/pedido-producto.entity';
 import { PagoService } from '../../pago/pago.service';
+import { MercadoPagoService } from '../../pago/mercado-pago.service';
 import { Pago } from '../../pago/entities/pago.entity';
 import { TipoPago } from '../../pago/enums/tipo-pago.enum';
 import type { PagoRegistradoResponse } from '../../pago/dto/pago-registrado-response.dto';
@@ -95,6 +96,7 @@ describe('PedidoService.registrarPago', () => {
           ProductoRepository,
           EmpleadoRepository,
           StockService,
+          MercadoPagoService,
         ].map((provide) => ({ provide, useValue: {} })),
       ],
     }).compile();
