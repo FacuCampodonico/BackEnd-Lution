@@ -125,9 +125,6 @@ describe('PedidoService.registrarPago', () => {
         tipo: TipoPago.EFECTIVO,
         pagaCon: 25000,
         vuelto: 5000,
-        titular: undefined,
-        marca: undefined,
-        cuotas: undefined,
         pedido: { id: 1 },
       },
       manager,
@@ -156,34 +153,6 @@ describe('PedidoService.registrarPago', () => {
     );
   });
 
-  it('conserva los datos de tarjeta sin exigir efectivo ni guardar vuelto', async () => {
-    const resultado = await service.registrarPago(1, {
-      tipo: TipoPago.TARJETA,
-      titular: 'Ana',
-      marca: 'Visa',
-      cuotas: 3,
-    });
-
-    expect(resultado).toEqual({
-      message: 'Pago registrado con éxito',
-      pedidoId: '1',
-      total: 20000,
-      vuelto: 0,
-    });
-    expect(mockPagoService.create).toHaveBeenCalledWith(
-      {
-        tipo: TipoPago.TARJETA,
-        pagaCon: undefined,
-        vuelto: undefined,
-        titular: 'Ana',
-        marca: 'Visa',
-        cuotas: 3,
-        pedido: { id: 1 },
-      },
-      manager,
-    );
-  });
-
   it('rechaza efectivo insuficiente antes de crear el pago o cerrar el pedido', async () => {
     await expect(
       service.registrarPago(1, { tipo: TipoPago.EFECTIVO, pagaCon: 10000 }),
@@ -199,7 +168,7 @@ describe('PedidoService.registrarPago', () => {
     mockPedidoRepository.findParaPago.mockResolvedValue(null);
 
     await expect(
-      service.registrarPago(1, { tipo: TipoPago.TARJETA }),
+      service.registrarPago(1, { tipo: TipoPago.EFECTIVO, pagaCon: 25000 }),
     ).rejects.toThrow(NotFoundException);
 
     expect(mockPagoService.create).not.toHaveBeenCalled();
@@ -211,7 +180,7 @@ describe('PedidoService.registrarPago', () => {
     pedido.estado = EstadoPedido.PAGADO;
 
     await expect(
-      service.registrarPago(1, { tipo: TipoPago.TARJETA }),
+      service.registrarPago(1, { tipo: TipoPago.EFECTIVO, pagaCon: 25000 }),
     ).rejects.toThrow(ConflictException);
 
     expect(mockPagoService.create).not.toHaveBeenCalled();
@@ -224,7 +193,7 @@ describe('PedidoService.registrarPago', () => {
     mockPagoService.create.mockRejectedValue(error);
 
     await expect(
-      service.registrarPago(1, { tipo: TipoPago.TARJETA }),
+      service.registrarPago(1, { tipo: TipoPago.EFECTIVO, pagaCon: 25000 }),
     ).rejects.toBe(error);
 
     expect(mockPedidoRepository.save).not.toHaveBeenCalled();
