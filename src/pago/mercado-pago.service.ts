@@ -10,10 +10,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const API_URL = 'https://api.mercadopago.com';
 
-/** Cuánto vive el QR: después vence y el pedido vuelve a poder modificarse. */
 export const MINUTOS_VIGENCIA_QR = 15;
 
-/** Pantalla pública del front a la que llega el cliente al terminar de pagar en su celular. */
 const RUTA_PAGO_RECIBIDO = '/pago-recibido';
 
 export interface ItemPreferencia {
@@ -92,7 +90,6 @@ export class MercadoPagoService {
     };
   }
 
-  /** Vence la preferencia para que el QR ya no se pueda pagar. No corta el flujo si falla. */
   async expirarPreferencia(preferenceId: string): Promise<void> {
     try {
       await this.request(
@@ -112,7 +109,6 @@ export class MercadoPagoService {
     }
   }
 
-  /** Pagos del pedido (más nuevos primero); sirve aunque el webhook no haya llegado. */
   async buscarPagosPorReferencia(
     externalReference: string,
   ): Promise<PagoMercadoPago[]> {
@@ -129,10 +125,7 @@ export class MercadoPagoService {
     return respuesta.results ?? [];
   }
 
-  /**
-   * Valida la firma `x-signature` del webhook con la clave secreta de la aplicación.
-   * Sin clave configurada no se valida: igual el pago siempre se verifica contra la API.
-   */
+
   firmaWebhookValida({
     xSignature,
     xRequestId,

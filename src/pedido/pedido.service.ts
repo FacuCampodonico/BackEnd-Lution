@@ -287,7 +287,6 @@ export class PedidoService {
     return { estado: 'sin_cobro' };
   }
 
-  /** Cancela el QR vigente. Si el cliente alcanzó a pagar, el pedido queda cerrado y se avisa. */
   async cancelarCobroMercadoPago(pedidoId: number): Promise<PedidoResponse> {
     const pedido = await this.findEntityById(pedidoId);
 
@@ -306,7 +305,6 @@ export class PedidoService {
     return this.findById(pedidoId);
   }
 
-  /** Webhook de Mercado Pago: confirma el pago si está aprobado y corresponde a un pedido. */
   async notificarPagoMercadoPago(paymentId: string): Promise<void> {
     let pagoMp: Awaited<ReturnType<MercadoPagoService['obtenerPago']>>;
     try {
@@ -340,7 +338,6 @@ export class PedidoService {
     }
   }
 
-  /** Busca un pago aprobado del pedido en Mercado Pago y, si existe, lo cierra. */
   private async conciliarPagoMercadoPago(pedidoId: number): Promise<boolean> {
     const pagos = await this.mercadoPagoService.buscarPagosPorReferencia(
       String(pedidoId),
@@ -379,7 +376,6 @@ export class PedidoService {
       }
 
       if (pedido.estado === EstadoPedido.PAGADO) {
-        // Volver a confirmar el mismo pago (ej. recargar la página) no es un error.
         if (pedido.pago?.mpPaymentId === String(pagoMp.id)) {
           return pagoMercadoPagoRegistrado(pedido.id, Number(pedido.total));
         }
