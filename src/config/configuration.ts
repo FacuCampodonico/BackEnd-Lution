@@ -12,6 +12,7 @@ export default () => ({
     username: process.env.DB_USER ?? 'root',
     password: process.env.DB_PASSWORD ?? '',
     name: process.env.DB_NAME ?? 'lution_dsw',
+    synchronize: process.env.DB_SYNC !== 'false',
   },
   jwt: {
     secret: process.env.JWT_SECRET ?? '',
