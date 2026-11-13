@@ -181,24 +181,18 @@ export class PedidoService {
 
       const totalCalculado = calcularTotal(pedido);
 
-      let vuelto = 0;
-      if (dto.tipo === TipoPago.EFECTIVO) {
-        if (!dto.pagaCon || dto.pagaCon < totalCalculado) {
-          throw new BadRequestException(
-            `El monto abonado ($${dto.pagaCon || 0}) es insuficiente para cubrir el total ($${totalCalculado})`,
-          );
-        }
-        vuelto = dto.pagaCon - totalCalculado;
+      if (!dto.pagaCon || dto.pagaCon < totalCalculado) {
+        throw new BadRequestException(
+          `El monto abonado ($${dto.pagaCon || 0}) es insuficiente para cubrir el total ($${totalCalculado})`,
+        );
       }
+      const vuelto = dto.pagaCon - totalCalculado;
 
       await this.pagoService.create(
         {
           tipo: dto.tipo,
-          pagaCon: dto.pagaCon || undefined,
-          vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : undefined,
-          titular: dto.titular || undefined,
-          marca: dto.marca || undefined,
-          cuotas: dto.cuotas || undefined,
+          pagaCon: dto.pagaCon,
+          vuelto,
           pedido: { id: pedido.id },
         },
         manager,
@@ -210,7 +204,7 @@ export class PedidoService {
         message: 'Pago registrado con éxito',
         pedidoId: String(pedido.id),
         total: totalCalculado,
-        vuelto: dto.tipo === TipoPago.EFECTIVO ? vuelto : 0,
+        vuelto,
       };
     });
   }
